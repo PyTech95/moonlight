@@ -42,6 +42,12 @@ deploy, set in the Secrets tab:
 - `APP_MODE` = `demo`
 Then redeploy. Without correct origins, POST /enquiries and /auth/* will 403.
 
+## Therapy images (2026-06)
+- Added a distinct image per therapy in `frontend/src/lib/content.js` (`image` field on
+  each `services` entry), rendered by `ServiceGrid` in `PublicSections.jsx` with new
+  `.service-photo` styling in `App.css` (photo banner + colored icon chip overlap).
+  Shows on Home therapies section and the /therapies page.
+
 ## Backlog / future phases (from docs, NOT built — Stage A gated)
 - Real auth (MFA, invitations/recovery), payments, email, WhatsApp, video, Instagram,
   private storage (needs EMERGENT_LLM_KEY / provider creds), transactional DB, backups.
