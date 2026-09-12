@@ -1,0 +1,24 @@
+{
+  "summary": "Frontend-only e2e for iteration 4 (email alert admin + therapy image override). All requested flows PASS: (a) Passwordless persona login works for parent/staff/admin; (b) Admin Settings 'New enquiry email alerts': notify-status starts 'Not configured', test-notify disabled, password field type=password. After entering center@example.com / sender@gmail.com / 16-char password and clicking Save, status becomes 'On', password input cleared, placeholder switches to saved indicator, and test-notify becomes enabled. (c) Clicking 'Send test email' fires the request and surfaces an error toast (Cloudflare 502 because the fake Gmail creds can't actually send) - acceptable per request. (d) Admin Media therapy card upload for speech-therapy transitions Default photo -> Custom photo, reset button appears, and Reset reverts to Default photo. (e) Public /therapies page (same session) shows the uploaded image via /api/public/media/... URL under data-testid=service-speech-therapy. (f) Public assessment enquiry submission returns reference (MN-5BB8D7B2) with success toast.",
+  "backend_issues": {"critical": [], "minor": [
+    {"endpoint": "POST /api/admin/notifications/test", "issue": "With fake SMTP creds the endpoint response returns as Cloudflare 502 in browser (likely long smtplib timeout hitting proxy limit). Not a bug per spec (no real SMTP creds) but consider shortening SMTP timeout and returning JSON error instead of letting the request hang past proxy timeout."}
+  ]},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_stage_a_core_flows.py"],
+  "action_items": [
+    "Optional: tighten SMTP send timeout in /api/admin/notifications/test so failure returns a clean JSON error toast rather than a Cloudflare 502 page. Currently the user-facing toast says 'origin web server returned an invalid or incomplete response'."
+  ],
+  "critical_code_review_comments": [
+    "AdminSettings.jsx is dense one-liner JSX (~40 char/line minified style) - readability is poor for future maintenance; consider splitting AdminSettings and AdminMedia into their own files.",
+    "notify-enabled testid is applied to the <label> wrapper; the actual checkbox is nested. Works via CSS descendant selector but exposing the input directly with the testid is safer.",
+    "test-notify endpoint may block on smtplib for the full socket timeout; wrap with a short asyncio.wait_for so browser gets JSON error quickly."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped)", "frontend": "100% of requested flows (6/6)"},
+  "test_credentials": "Passwordless persona demo via /login (Parent/Care team/Admin).",
+  "seed_data_creation": "Per-browser sandbox: uploaded 1x1 PNG to therapy slot speech-therapy then reset it; saved fake notify settings (center@example.com / sender@gmail.com / 16-char pw).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All UI selectors used: notify-status, notify-enabled (label>input), notify-email, notify-smtp-user, notify-app-password, save-notify, test-notify, therapy-media-<slug>, therapy-reset-<slug>, service-<slug>. Booking modal fields have no testids - use placeholders: 'Your name', '+91', 'you@example.com' and last checkbox for consent. Test-notify with fake creds returns 502 via proxy (~30s hang); do not treat as blocker.",
+  "rca of the issue": "N/A - no functional bugs. The 502 on test-notify is expected with fake SMTP credentials and is an environmental/network limit, not an implementation defect."
+}

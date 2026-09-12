@@ -1,5 +1,7 @@
 import re
 import os
+import asyncio
+import logging
 import httpx
 from datetime import datetime, timezone
 from typing import Literal
@@ -10,8 +12,10 @@ from config import db, Input, Payload, uid, now
 from security import sandbox, rate_limit, digest
 from seed import SETTINGS
 from storage import get_object, APP_NAME
+from emailer import send_email
 
 router = APIRouter()
+NOTIFY_FIELDS = ('smtp_app_password', 'smtp_username', 'notify_email', 'notify_enabled', 'smtp_host', 'smtp_port')
 SERVICES = ['Speech Therapy', 'Occupational Therapy', 'ABA Therapy', 'Sensory Integration Therapy', 'Yoga Therapy', 'Neurodevelopmental Therapy', 'Remedial Therapy', 'Music & Play Therapy', 'I am not sure']
 
 
@@ -44,7 +48,7 @@ class EnquiryInput(Input):
 
 @router.get('/public/settings', response_model=Payload)
 async def settings(space=Depends(sandbox)):
-    record = await db.settings.find_one({'org_id': space['org_id']}, {'_id': 0, 'org_id': 0})
+    record = await db.settings.find_one({'org_id': space['org_id']}, {'_id': 0, 'org_id': 0, **{f: 0 for f in NOTIFY_FIELDS}})
     return record or SETTINGS
 
 
@@ -119,6 +123,31 @@ async def reviews():
     return data
 
 
+async def _notify_new_enquiry(org_id, record, data):
+    s = await db.settings.find_one({'org_id': org_id})
+    if not (s and s.get('notify_enabled') and s.get('smtp_username') and s.get('smtp_app_password') and s.get('notify_email')):
+        return
+    subject = f"New assessment enquiry · {data.service}"
+    body = (
+        "A new assessment enquiry was submitted on the Moonlight website.\n\n"
+        f"Reference: {record['reference']}\n"
+        f"Name: {data.guardian_name}\n"
+        f"Phone: {data.phone}\n"
+        f"Email: {data.email or '(not provided)'}\n"
+        f"Interest: {data.service}\n"
+        f"Preferred contact: {data.contact_preference} · {data.contact_time}\n"
+        f"Source: {data.source}\n"
+    )
+    try:
+        await send_email(s, subject, body, reply_to=data.email or None)
+        status = 'Sent'
+    except Exception:
+        logging.getLogger('emailer').exception('Enquiry alert email failed')
+        status = 'Failed'
+    await db.enquiries.update_one({'org_id': org_id, 'id': record['id']},
+                                  {'$set': {'notification.status': status, 'notification.attempts': 1}})
+
+
 @router.post('/enquiries', response_model=Payload, status_code=201)
 async def enquiry(data: EnquiryInput, space=Depends(sandbox), idempotency_key: str = Header(..., max_length=80)):
     if not data.consent:
@@ -148,4 +177,5 @@ async def enquiry(data: EnquiryInput, space=Depends(sandbox), idempotency_key: s
         if existing['fingerprint'] != fingerprint:
             raise HTTPException(409, 'Request identifier conflict.')
         return {'id': existing['id'], 'reference': existing['reference'], 'status': 'Request received', 'duplicate': True}
+    asyncio.create_task(_notify_new_enquiry(space['org_id'], record, data))
     return {'id': record_id, 'reference': record['reference'], 'status': 'Request received', 'duplicate': False}

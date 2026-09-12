@@ -42,6 +42,22 @@ deploy, set in the Secrets tab:
 - `APP_MODE` = `demo`
 Then redeploy. Without correct origins, POST /enquiries and /auth/* will 403.
 
+## Admin-configurable features (2026-06, iteration 4)
+- **Enquiry email alerts (Gmail SMTP), configurable in Admin → Settings**:
+  `backend/emailer.py` (smtplib + asyncio.to_thread), admin endpoints
+  `PATCH /api/admin/notifications`, `POST /api/admin/notifications/test` (12s cap),
+  and `public.py` fires `_notify_new_enquiry` on each new enquiry. App password stored
+  server-side, never returned (get_settings sanitized → `smtp_password_set` flag only);
+  public settings strips all notify/smtp fields. UI in `AdminSettings.jsx` (email-alert
+  form with save + send-test). Requires a Gmail App Password entered by the admin.
+  NOTE: real email DELIVERY not verified (no real Gmail creds) — implementation tested,
+  test-send returns clean error with dummy creds.
+- **Per-therapy photo upload, Admin → Site images**: object storage enabled via
+  `EMERGENT_LLM_KEY` in backend/.env. `admin.py` upload/remove `slot=therapy&slug=<slug>`
+  stores `settings.therapy_images[slug]`; `ServiceGrid` overrides the default stock image
+  with the uploaded one on Home/Therapies. Verified end-to-end.
+- Sports cards already render one photo each (`SportsGrid`); confirmed all 6 load.
+
 ## Therapy images (2026-06)
 - Added a distinct image per therapy in `frontend/src/lib/content.js` (`image` field on
   each `services` entry), rendered by `ServiceGrid` in `PublicSections.jsx` with new
