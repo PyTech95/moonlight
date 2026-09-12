@@ -1,57 +1,29 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
-import { HOME } from "@/constants/testIds";
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
+import '@fontsource/dm-sans/400.css';
+import '@fontsource/dm-sans/500.css';
+import '@fontsource/dm-sans/600.css';
+import '@fontsource/manrope/400.css';
+import '@fontsource/manrope/500.css';
+import '@fontsource/manrope/600.css';
+import '@fontsource/manrope/700.css';
+import './App.css';
+import { AuthProvider, OrganizationProvider, BookingProvider } from './lib/context';
+import { PublicLayout } from './components/PublicLayout';
+import { PortalLayout } from './components/PortalLayout';
+import Home from './pages/Home';
+import Services from './pages/Services';
+import SportsPage from './pages/Sports';
+import Information, { NotFound } from './pages/Information';
+import Assessment from './pages/Assessment';
+import Login from './pages/Login';
+import Parent from './pages/Parent';
+import Staff from './pages/Staff';
+import Admin from './pages/Admin';
+import Locations, { AreasWeServe } from './pages/Locations';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
-
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
-  return (
-    // The marker attribute below lets the platform probe detect the stock splash — remove it with this page
-    <div data-emergent-splash>
-      <header className="App-header">
-        <a
-          data-testid={HOME.emergentLink}
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
-
-function App() {
-  return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </div>
-  );
-}
-
+const RouteEffects=()=>{const {pathname}=useLocation();useEffect(()=>{window.scrollTo(0,0);if(pathname.startsWith('/locations/')||pathname==='/locations')return;document.title=`${pathname==='/'?'Child development & family support':pathname.includes('/portal')?'Your secure workspace':pathname.split('/').pop().replaceAll('-',' ')} | Moonlight Neurocare`;},[pathname]);return null;};
+function App(){return <BrowserRouter><AuthProvider><OrganizationProvider><BookingProvider><RouteEffects/><Routes><Route element={<PublicLayout/>}><Route path="/" element={<Home/>}/><Route path="/therapies" element={<Services/>}/><Route path="/therapies/:slug" element={<Services/>}/><Route path="/sports" element={<SportsPage/>}/><Route path="/sports/:slug" element={<SportsPage/>}/><Route path="/locations" element={<Locations/>}/><Route path="/locations/:area" element={<Locations/>}/><Route path="/locations/:area/:therapy" element={<Locations/>}/><Route path="/book-assessment" element={<Assessment/>}/>{['about','our-approach','for-parents','fees','center','resources','contact','faqs','what-to-expect','international/families-visiting-india','international/dubai-to-gurugram','locations/gurugram-sector-37c'].map(path=><Route key={path} path={`/${path}`} element={<Information/>}/>)}<Route path="/policies/:policy" element={<Information/>}/><Route path="/appointment" element={<Navigate to="/book-assessment" replace/>}/><Route path="*" element={<NotFound/>}/></Route><Route path="/login" element={<Login/>}/><Route path="/portal/:role" element={<PortalLayout/>}><Route path=":view" element={<PortalPage/>}/><Route index element={<PortalPage/>}/></Route></Routes><Toaster position="bottom-right" richColors closeButton/></BookingProvider></OrganizationProvider></AuthProvider></BrowserRouter>;}
+const PortalPage=()=>{const {pathname}=useLocation();if(pathname.startsWith('/portal/parent'))return <Parent/>;if(pathname.startsWith('/portal/staff'))return <Staff/>;return <Admin/>;};
 export default App;
