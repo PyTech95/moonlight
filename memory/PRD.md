@@ -42,6 +42,12 @@ deploy, set in the Secrets tab:
 - `APP_MODE` = `demo`
 Then redeploy. Without correct origins, POST /enquiries and /auth/* will 403.
 
+## Sizing tweak (2026-06)
+- Increased ~70%: therapy card image height (158→269px), footer section padding
+  (top 60→102px, footer-grid bottom 45→76px, footer-bottom padding 22→37px), and
+  secondary text (`.small` 12→20px, `.eyebrow` 10→17px, `.editorial-label` 10→17px,
+  `.footer-note`/`.footer-bottom` 9→15px) in `App.css`.
+
 ## Admin-configurable features (2026-06, iteration 4)
 - **Enquiry email alerts (Gmail SMTP), configurable in Admin → Settings**:
   `backend/emailer.py` (smtplib + asyncio.to_thread), admin endpoints
