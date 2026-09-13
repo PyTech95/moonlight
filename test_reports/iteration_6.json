@@ -1,0 +1,49 @@
+{
+  "summary": "Completed backend + frontend testing for practice video assignment workflow (upload, scoped delivery, viewed state, edit/delete, privacy, and regressions). Backend pytest suite for practice-video APIs passed (4/4). Frontend e2e verified staff publish/edit/watch/delete, parent notification + read state, mobile navigation/overflow, and parent/staff/admin login route regressions.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/public/media/{path} and /api/practice-videos/{id}/media",
+        "issue": "Global privacy middleware rewrites Cache-Control to 'no-store, no-cache, must-revalidate', overriding route-specific cache headers (public media route cannot return intended public cache header, and private media route cannot return intended 'private, no-store')."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Staff practice composer child dropdown",
+        "issue": "Browser console shows hydration warning: '<span> cannot be a child of <option>' while rendering dropdown options.",
+        "selector": "[data-testid='practice-child-select']",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_practice_videos.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Preserve route-specific Cache-Control headers instead of overriding all responses in middleware (or conditionally skip for media routes).",
+    "Investigate and fix option-rendering hydration warning in staff practice dropdown to avoid invalid HTML nesting."
+  ],
+  "critical_code_review_comments": [
+    "server.py middleware sets Cache-Control for all responses, which unintentionally negates explicit per-route caching/privacy intent in public.py and practice.py media routes.",
+    "Practice components are well covered with data-testid attributes for core interactions (upload/publish/edit/watch/delete/read-state)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_practice_videos.py",
+    "/app/test_reports/iteration_6.json"
+  ],
+  "success_rate": {
+    "backend": "100% (4/4 pytest pass)",
+    "frontend": "95% (core requested flows passed)"
+  },
+  "seed_data_creation": "Created synthetic demo practice videos during backend/frontend tests. UI create-delete flow was explicitly verified and cleaned in that run; backend test runs created records inside isolated demo sandboxes.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Use /app/backend/tests/test_practice_videos.py for regression. For UI, keep staff and parent switches inside the same browser context to preserve mnc_demo sandbox cookie. Admin overview selectors are numeric (admin-stat-0..3).",
+  "rca of the issue": "Cache header mismatch RCA: privacy middleware in server.py always rewrites Cache-Control after route handlers return, so media routes cannot enforce their own route-level policy. Repro: request /api/public/media/{valid_path} or /api/practice-videos/{id}/media and inspect response headers; expected per-route Cache-Control is replaced by middleware value. Mitigation: conditionally skip Cache-Control rewrite when response already sets a policy, or apply path-based exceptions for media endpoints."
+}

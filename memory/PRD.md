@@ -42,6 +42,37 @@ deploy, set in the Secrets tab:
 - `APP_MODE` = `demo`
 Then redeploy. Without correct origins, POST /enquiries and /auth/* will 403.
 
+## Private home-practice videos (2026-09-13, iteration 6)
+- **Staff and Admin workflow**: Added Home practice workspaces where a therapist/admin can
+  select an authorized child and therapy, add the completed session date, title, family note,
+  and 1–4 short steps, then either record in the browser or upload an MP4/WebM/MOV guide.
+  Guides are capped at 10 minutes and 120 MB; the form explicitly confirms guardian sharing
+  consent and reminds staff not to record a full therapy session.
+- **Parent delivery and notification**: The Parent portal now has a dedicated Practice videos
+  route, unread badges in the sidebar/top bar/mobile navigation, a New filter, dated therapy
+  cards, secure playback, therapist attribution, and automatic read-state updates. The Today
+  page also shows a new-practice counter.
+- **Private storage and authorization**: `backend/practice.py` stores video bytes in Emergent
+  Object Storage and only stores the canonical path server-side in MongoDB. Media is served
+  through authenticated, tenant- and child-scoped endpoints; public media routes now allow
+  only files referenced by public site settings, preventing guessed private practice paths.
+  Storage uses soft deletion because the provider has no object-delete API.
+- **Data model**: `practice_videos` records contain `id`, `org_id`, `child_id`, therapy/title/
+  note/steps, session and publish dates, duration, therapist metadata, private storage metadata,
+  consent evidence, `read_by`, version, and soft-delete fields. Mongo `_id` and storage paths
+  are never returned in workspace payloads.
+- **API routes**: `POST /api/practice-videos`, `PATCH/DELETE /api/practice-videos/{id}`,
+  `POST /api/practice-videos/{id}/viewed`, and `GET /api/practice-videos/{id}/media`.
+- **Verification**: Testing agent iteration 6 passed the full staff→parent flow, upload/edit/
+  watch/delete, unread→read behavior, private scoping, media privacy, desktop/mobile layouts,
+  and portal regressions. Post-test fixes removed an invalid option-rendering warning and made
+  middleware preserve route cache policies. Final self-test: 11/11 backend regressions passed,
+  frontend production build passed, and Staff/Admin practice workspaces loaded with clean
+  browser consoles. The preview gateway intentionally applies a stricter `no-store` policy.
+- **User verification pending**: Try the complete flow with a short non-sensitive demo video
+  before enabling this for real families. The app remains `APP_MODE=demo` and warns against
+  uploading real child information.
+
 ## WhatsApp enquiry alerts (2026-06, iteration 5)
 - Admin-configurable via Admin → Settings (mirrors email alerts). Meta WhatsApp Cloud
   API (Graph API v26.0): `backend/whatsapp.py`, admin `PATCH /api/admin/whatsapp` +
@@ -82,7 +113,15 @@ Then redeploy. Without correct origins, POST /enquiries and /auth/* will 403.
   `.service-photo` styling in `App.css` (photo banner + colored icon chip overlap).
   Shows on Home therapies section and the /therapies page.
 
-## Backlog / future phases (from docs, NOT built — Stage A gated)
-- Real auth (MFA, invitations/recovery), payments, email, WhatsApp, video, Instagram,
-  private storage (needs EMERGENT_LLM_KEY / provider creds), transactional DB, backups.
-- Image upload in Admin Settings intentionally deferred (storage unconfigured in Stage A).
+## Prioritized backlog / future phases (Stage A remains gated)
+- **P0 — User verification**: Center team reviews the new Staff/Admin→Parent practice-video
+  workflow using only synthetic content and confirms the consent wording, maximum duration,
+  and step format.
+- **P1 — Production readiness**: Real invited-account auth (MFA and recovery), formal consent
+  policy/versioning, video retention/expiry controls, storage quota monitoring, malware/media
+  validation, audit export, backups, and privacy/legal acceptance before real child data.
+- **P1 — Operational integrations**: Enter real Gmail App Password and Meta WhatsApp Cloud API
+  credentials in Admin Settings if enquiry alerts are required; delivery cannot be verified
+  until the center supplies valid provider credentials.
+- **P2 — Optional engagement**: Parent completion/feedback per video and optional email or
+  WhatsApp “new practice guide” links. Payments, Instagram, and live teletherapy remain unbuilt.

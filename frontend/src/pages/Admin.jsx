@@ -6,6 +6,7 @@ import { SessionList } from '../components/SessionList';
 import { AdminSettings, AdminIntegrations, AdminAudit, AdminChecklist, AdminMedia } from './AdminSettings';
 import { api,errorText,dateLabel } from '../lib/api';
 import { toast } from 'sonner';
+import { StaffPracticePage } from '../components/practice/StaffPractice';
 
 export const STAGES=['New','Contacted','Assessment Requested','Assessment Scheduled','Assessed','Plan Proposed','Enrolled','Waitlisted','Closed'];
 export default function Admin(){
@@ -13,6 +14,7 @@ export default function Admin(){
  const [search,setSearch]=useState(''),[stage,setStage]=useState('All stages'),[busy,setBusy]=useState(false);
  const update=async(e,value)=>{setBusy(true);try{await api.patch(`/admin/enquiries/${e.id}`,{stage:value,version:e.version});await refresh();toast.success('Admissions stage updated. No appointment has been scheduled.');}catch(e){toast.error(errorText(e));}finally{setBusy(false);}};
  if(view==='settings')return <AdminSettings/>;
+ if(view==='practice')return <StaffPracticePage/>;
  if(view==='media')return <AdminMedia/>;
  if(view==='integrations')return <AdminIntegrations/>;
  if(view==='audit')return <AdminAudit/>;

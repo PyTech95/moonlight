@@ -1,0 +1,92 @@
+{
+  "project_name": "Moonlight Neurocare - Home Therapy Video Module",
+  "archetype": "ORGANIC & EARTHY (Trust, Growth, Care)",
+  "context_type": "DASHBOARDS & APPS (Pediatric Healthcare & Parent Portal)",
+  "typography": {
+    "heading_font": "Fraunces, Serif",
+    "body_font": "Manrope, sans-serif",
+    "mono_font": "JetBrains Mono, monospace",
+    "hierarchy": {
+      "h1_hero": "text-3xl sm:text-4xl lg:text-5xl font-serif font-bold tracking-tight text-[#144740]",
+      "h2_section": "text-xl sm:text-2xl lg:text-3xl font-serif font-semibold text-[#183935]",
+      "h3_card": "text-lg sm:text-xl font-sans font-semibold text-[#183935]",
+      "h4_sub": "text-base font-sans font-medium text-[#2d524c]",
+      "body": "text-sm sm:text-base font-sans text-[#335650] leading-relaxed",
+      "caption_meta": "text-xs font-sans text-[#5c7a74] tracking-wide"
+    }
+  },
+  "colors": {
+    "mode": "light",
+    "primary": {
+      "default": "hsl(176, 65%, 25%)",
+      "hex": "#16695C",
+      "hover": "#115248",
+      "foreground": "#FFFFFF"
+    },
+    "secondary": {
+      "default": "hsl(120, 18%, 93%)",
+      "hex": "#EBF2EB",
+      "foreground": "#1B3B36"
+    },
+    "background": {
+      "page": "#FAF8F5",
+      "card": "#FFFFFF",
+      "subtle": "#F2F6F3"
+    },
+    "accent": {
+      "amber": "#D97706",
+      "amber_light": "#FEF3C7",
+      "emerald": "#059669",
+      "emerald_light": "#D1FAE5",
+      "rose": "#E11D48",
+      "rose_light": "#FFE4E6"
+    },
+    "borders": {
+      "default": "#D9E5DF",
+      "focus": "#16695C"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-md bg-white/90 border border-[#D9E5DF]/60 shadow-sm",
+    "card_style": "bg-white border border-[#D9E5DF] rounded-xl p-5 shadow-[0_2px_8px_rgba(20,71,64,0.04)] hover:shadow-[0_4px_16px_rgba(20,71,64,0.08)] transition-all duration-200",
+    "active_glow": "ring-2 ring-[#16695C] ring-offset-2",
+    "badge_unread": "bg-[#E11D48] text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse"
+  },
+  "grids_and_layouts": {
+    "staff_portal": "grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 sm:p-6 max-w-7xl mx-auto",
+    "parent_portal": "grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 sm:p-6 max-w-6xl mx-auto",
+    "video_grid": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+  },
+  "motion": {
+    "transitions": "transition-all duration-200 ease-in-out",
+    "hover_lift": "hover:-translate-y-0.5 hover:shadow-md",
+    "prefers_reduced_motion": "motion-reduce:transition-none motion-reduce:transform-none"
+  },
+  "accessibility": {
+    "contrast_ratio": "APCA & WCAG AA minimum 4.5:1",
+    "focus_rings": "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#16695C] focus-visible:ring-offset-2",
+    "testing_attributes": "All interactive elements (buttons, inputs, tabs, playback controls, status indicators) MUST have data-testid in kebab-case."
+  },
+  "image_urls": {
+    "therapy_ball": "https://images.unsplash.com/photo-1625650726471-c9be16a4ffaf?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzB8MHwxfHNlYXJjaHwzfHxjaGlsZCUyMHBsYXlpbmclMjBiYWxsJTIwdGhlcmFweSUyMGV4ZXJjaXNlfGVufDB8fHx8MTc4OTI3MzgzMHww&ixlib=rb-4.1.0&q=85",
+    "child_exercise": "https://images.unsplash.com/photo-1708687045030-26702e62fc65?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2MzR8MHwxfHNlYXJjaHwxfHxwZWRpYXRyaWMlMjBwaHlzaWNhbCUyMHRoZXJhcHklMjBjaGlsZCUyMGV4ZXJjaXNlc3xlbnwwfHx8fDE3ODkyNzM4MzB8MA&ixlib=rb-4.1.0&q=85",
+    "balloon_squat": "https://images.unsplash.com/photo-1758573643908-3ebd8e68eca0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzB8MHwxfHNlYXJjaHw0fHxjaGlsZCUyMHBsYXlpbmclMjBiYWxsJTIwdGhlcmFweSUyMGV4ZXJjaXNlfGVufDB8fHx8MTc4OTI3MzgzMHww&ixlib=rb-4.1.0&q=85"
+  },
+  "3d_libraries": {
+    "use_case": "Not required for core video therapy workflow. Rely on high-clarity video player, HTML canvas for video recording preview, and CSS micro-animations."
+  },
+  "component_path": "/app/frontend/src/pages/",
+  "instructions_to_main_agent": [
+    "Integrate Therapist Home Video Recording & Upload Modal / Drawer into Staff.jsx.",
+    "Implement child selection, therapy step bullet points (e.g. 1-3 step breakdown), target duration (5-10 mins max), camera/video recorder web-RTC simulation or local file picker preview, and publication to parent portal.",
+    "Add Parent Notification Center & Home Therapy Videos feed into Parent.jsx with date badges, read/unread state updates, step-by-step checklist for parents, therapist history, and video modal viewer.",
+    "Provide Therapist Edit / Delete capabilities for assigned home video exercises.",
+    "Ensure all buttons and inputs include rigorous data-testid attributes."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "Avoid full-screen plain dark gradients; maintain the warm care-oriented light theme of Moonlight Neurocare.",
+    "Containers with borders must have internal padding (p-5 or p-6) to prevent text collision.",
+    "Use explicitly declared text color on hover and focus states.",
+    "Respect responsive mobile-first patterns with generous spacing."
+  ]
+}

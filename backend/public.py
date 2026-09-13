@@ -55,8 +55,17 @@ async def settings(space=Depends(sandbox)):
 
 
 @router.get('/public/media/{path:path}')
-async def media(path: str):
+async def media(path: str, space=Depends(sandbox)):
     if not path.startswith(APP_NAME + '/'):
+        raise HTTPException(404, 'Not found.')
+    settings_doc = await db.settings.find_one({'org_id': space['org_id']}, {'_id': 0})
+    if not settings_doc:
+        raise HTTPException(404, 'Not found.')
+    allowed = set(settings_doc.get('hero_images', []))
+    allowed.update(value for value in [settings_doc.get('director_photo'), settings_doc.get('team_photo')] if value)
+    allowed.update(member.get('photo') for member in settings_doc.get('team', []) if member.get('photo'))
+    allowed.update((settings_doc.get('therapy_images') or {}).values())
+    if path not in allowed:
         raise HTTPException(404, 'Not found.')
     try:
         data, content_type = get_object(path)

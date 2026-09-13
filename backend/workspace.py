@@ -16,7 +16,17 @@ async def workspace(role: Literal['parent', 'staff', 'admin'], p=Depends(princip
     fields = ['id', 'name', 'initials', 'age_label'] if role == 'admin' else ['id', 'name', 'initials', 'age_label', 'communication', 'goals', 'shared_summary']
     children = await repo.list('children', 'children:read', fields)
     appointments = await repo.list('appointments', 'appointments:read')
-    data = {'children': children, 'appointments': sorted(appointments, key=lambda x: x['starts_at']), 'activities': [], 'announcements': [], 'requests': [], 'demo': True}
+    video_fields = ['id', 'child_id', 'child_name', 'therapy', 'title', 'note', 'steps', 'session_date',
+                    'duration_seconds', 'therapist_name', 'created_at', 'published_at', 'version', 'read_by']
+    practice_videos = await repo.list('practice_videos', 'practice_videos:read', video_fields)
+    practice_videos = sorted(practice_videos, key=lambda x: x.get('published_at', ''), reverse=True)
+    for video in practice_videos:
+        read_by = video.pop('read_by', [])
+        video['viewed'] = p['id'] in read_by
+        video['family_viewed'] = bool(read_by)
+    data = {'children': children, 'appointments': sorted(appointments, key=lambda x: x['starts_at']), 'activities': [], 'announcements': [], 'requests': [],
+            'practice_videos': practice_videos, 'practice_unread': sum(not video['viewed'] for video in practice_videos) if role == 'parent' else 0,
+            'demo': True}
     if role != 'admin':
         data['activities'] = await repo.list('activities', 'activities:read')
         data['announcements'] = await repo.list('announcements', 'announcements:read')

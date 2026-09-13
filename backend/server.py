@@ -9,6 +9,7 @@ from public import router as public_router
 from auth import router as auth_router
 from workspace import router as workspace_router
 from admin import router as admin_router
+from practice import router as practice_router
 
 
 @asynccontextmanager
@@ -18,8 +19,9 @@ async def lifespan(app):
     await db.sandboxes.create_index('token_hash', unique=True)
     await db.users.create_index([('org_id', 1), ('email', 1)], unique=True)
     await db.enquiries.create_index([('org_id', 1), ('idempotency_key', 1)], unique=True)
-    for collection in ['children', 'appointments', 'activities', 'announcements', 'requests', 'audit', 'enquiries']:
+    for collection in ['children', 'appointments', 'activities', 'announcements', 'requests', 'audit', 'enquiries', 'practice_videos']:
         await db[collection].create_index([('org_id', 1), ('id', 1)], unique=True)
+    await db.practice_videos.create_index([('org_id', 1), ('child_id', 1), ('published_at', -1)])
     try:
         init_storage()
     except Exception as exc:
@@ -30,7 +32,7 @@ async def lifespan(app):
 
 app = FastAPI(title='Moonlight Neurocare · Stage A', lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_credentials=True,
-                   allow_methods=['GET', 'POST', 'PATCH'], allow_headers=['Content-Type', 'X-CSRF-Token', 'Idempotency-Key'])
+                   allow_methods=['GET', 'POST', 'PATCH', 'DELETE'], allow_headers=['Content-Type', 'X-CSRF-Token', 'Idempotency-Key'])
 
 
 @app.middleware('http')
@@ -41,11 +43,12 @@ async def privacy_headers(request: Request, call_next):
             logging.getLogger('origin-check').warning('Rejected untrusted request origin')
             return JSONResponse({'detail': 'Request origin is not permitted.'}, status_code=403)
     response = await call_next(request)
-    response.headers['Cache-Control'] = 'no-store'
+    if 'cache-control' not in response.headers:
+        response.headers['Cache-Control'] = 'no-store'
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Robots-Tag'] = 'noindex, nofollow'
     response.headers['Referrer-Policy'] = 'same-origin'
-    response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
+    response.headers['Permissions-Policy'] = 'camera=(self), microphone=(self), geolocation=()'
     return response
 
 
@@ -59,3 +62,4 @@ app.include_router(public_router, prefix='/api')
 app.include_router(auth_router, prefix='/api')
 app.include_router(workspace_router, prefix='/api')
 app.include_router(admin_router, prefix='/api')
+app.include_router(practice_router, prefix='/api')
