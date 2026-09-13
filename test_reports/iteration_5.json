@@ -1,0 +1,31 @@
+{
+  "summary": "Frontend-only verification of new admin-configurable WhatsApp enquiry alerts on /portal/admin/settings. Logged in via Admin persona → Explore admin demo, navigated to settings, exercised the WhatsApp form end-to-end and verified email-alerts regression on the same page. All WhatsApp acceptance criteria passed. Public assessment enquiry regression not re-run (already passed in iteration_4 and unchanged code path; alerts are fire-and-forget in background).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified_acceptance_criteria": [
+    "Admin persona login lands in /portal/admin/overview",
+    "/portal/admin/settings shows 3 stacked forms: contact info, email alerts, WhatsApp alerts",
+    "wa-status initially 'Not configured' and test-whatsapp initially disabled",
+    "wa-access-token input has type=password",
+    "Filling wa-enabled + wa-recipient + wa-phone-id + wa-access-token + wa-template-name + wa-template-language and clicking save-whatsapp shows success toast 'WhatsApp alert settings saved.'",
+    "After save: wa-status badge becomes 'On', token input cleared, placeholder switches to '•••••••• saved — leave blank to keep', test-whatsapp becomes enabled",
+    "Clicking test-whatsapp with fake credentials returns clean HTTP 400 JSON (observed in browser console: 'Failed to load resource: 400') — NOT a Cloudflare error page. Error toast surfaces cleanly.",
+    "Email regression: notify-status becomes 'On' after saving notify-email/notify-smtp-user/notify-app-password; test-notify becomes enabled and hits backend returning clean HTTP 400 for fake Gmail creds"
+  ],
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "AdminSettings.jsx is very dense (single-line JSX with many concerns in one component ~80 chars-per-line). Consider splitting the three forms (ContactInfoForm, EmailAlertsForm, WhatsAppAlertsForm) into separate components for readability and testability. Not a functional bug.",
+    "Access token treated correctly: never sent back from GET /admin/settings (wa_token_set boolean instead) and cleared from local state after save."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped)", "frontend": "100%"},
+  "seed_data_creation": "None. Used per-browser mnc_demo sandbox cookie.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "WhatsApp form (data-testids: wa-status, wa-enabled, wa-recipient, wa-phone-id, wa-access-token, wa-template-name, wa-template-language, save-whatsapp, test-whatsapp) fully functional. Note: because mnc_demo cookies are per-browser sandbox, launching a fresh Playwright browser gives a fresh workspace where test buttons start disabled — this is expected. When testing test-whatsapp/test-notify, watch for clean HTTP 400 responses (visible in browser console) rather than sonner toast persistence (sonner auto-dismisses ~4s)."
+}

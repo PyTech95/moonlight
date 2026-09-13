@@ -42,6 +42,18 @@ deploy, set in the Secrets tab:
 - `APP_MODE` = `demo`
 Then redeploy. Without correct origins, POST /enquiries and /auth/* will 403.
 
+## WhatsApp enquiry alerts (2026-06, iteration 5)
+- Admin-configurable via Admin → Settings (mirrors email alerts). Meta WhatsApp Cloud
+  API (Graph API v26.0): `backend/whatsapp.py`, admin `PATCH /api/admin/whatsapp` +
+  `POST /api/admin/whatsapp/test`, and `public._notify_new_enquiry` now sends WhatsApp
+  alongside email on each new enquiry. Access token stored server-side, never returned
+  (get_settings → `wa_token_set` flag; public settings strips all `wa_*`). UI form in
+  `AdminSettings.jsx`. Admin must supply Phone Number ID, permanent access token, and an
+  APPROVED template whose body has 3 vars in order: family name, phone, interest.
+  Test-endpoint failures return HTTP 400 (not 5xx) so Cloudflare passes the JSON toast
+  through. NOTE: real WhatsApp DELIVERY not verified (no Meta creds) — path tested with
+  dummy creds (clean error). Verified end-to-end in iteration_5.
+
 ## Sizing tweak (2026-06)
 - Increased ~70%: therapy card image height (158→269px), footer section padding
   (top 60→102px, footer-grid bottom 45→76px, footer-bottom padding 22→37px), and

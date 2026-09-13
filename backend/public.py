@@ -13,9 +13,11 @@ from security import sandbox, rate_limit, digest
 from seed import SETTINGS
 from storage import get_object, APP_NAME
 from emailer import send_email
+from whatsapp import send_whatsapp_template
 
 router = APIRouter()
-NOTIFY_FIELDS = ('smtp_app_password', 'smtp_username', 'notify_email', 'notify_enabled', 'smtp_host', 'smtp_port')
+NOTIFY_FIELDS = ('smtp_app_password', 'smtp_username', 'notify_email', 'notify_enabled', 'smtp_host', 'smtp_port',
+                 'wa_enabled', 'wa_phone_number_id', 'wa_access_token', 'wa_template_name', 'wa_template_language', 'wa_recipient', 'wa_api_version')
 SERVICES = ['Speech Therapy', 'Occupational Therapy', 'ABA Therapy', 'Sensory Integration Therapy', 'Yoga Therapy', 'Neurodevelopmental Therapy', 'Remedial Therapy', 'Music & Play Therapy', 'I am not sure']
 
 
@@ -125,27 +127,33 @@ async def reviews():
 
 async def _notify_new_enquiry(org_id, record, data):
     s = await db.settings.find_one({'org_id': org_id})
-    if not (s and s.get('notify_enabled') and s.get('smtp_username') and s.get('smtp_app_password') and s.get('notify_email')):
+    if not s:
         return
-    subject = f"New assessment enquiry · {data.service}"
-    body = (
-        "A new assessment enquiry was submitted on the Moonlight website.\n\n"
-        f"Reference: {record['reference']}\n"
-        f"Name: {data.guardian_name}\n"
-        f"Phone: {data.phone}\n"
-        f"Email: {data.email or '(not provided)'}\n"
-        f"Interest: {data.service}\n"
-        f"Preferred contact: {data.contact_preference} · {data.contact_time}\n"
-        f"Source: {data.source}\n"
-    )
-    try:
-        await send_email(s, subject, body, reply_to=data.email or None)
-        status = 'Sent'
-    except Exception:
-        logging.getLogger('emailer').exception('Enquiry alert email failed')
-        status = 'Failed'
-    await db.enquiries.update_one({'org_id': org_id, 'id': record['id']},
-                                  {'$set': {'notification.status': status, 'notification.attempts': 1}})
+    if s.get('notify_enabled') and s.get('smtp_username') and s.get('smtp_app_password') and s.get('notify_email'):
+        subject = f"New assessment enquiry · {data.service}"
+        body = (
+            "A new assessment enquiry was submitted on the Moonlight website.\n\n"
+            f"Reference: {record['reference']}\n"
+            f"Name: {data.guardian_name}\n"
+            f"Phone: {data.phone}\n"
+            f"Email: {data.email or '(not provided)'}\n"
+            f"Interest: {data.service}\n"
+            f"Preferred contact: {data.contact_preference} · {data.contact_time}\n"
+            f"Source: {data.source}\n"
+        )
+        try:
+            await send_email(s, subject, body, reply_to=data.email or None)
+            status = 'Sent'
+        except Exception:
+            logging.getLogger('emailer').exception('Enquiry alert email failed')
+            status = 'Failed'
+        await db.enquiries.update_one({'org_id': org_id, 'id': record['id']},
+                                      {'$set': {'notification.status': status, 'notification.attempts': 1}})
+    if s.get('wa_enabled') and s.get('wa_phone_number_id') and s.get('wa_access_token') and s.get('wa_template_name') and s.get('wa_recipient'):
+        try:
+            await send_whatsapp_template(s, [data.guardian_name, data.phone, data.service])
+        except Exception:
+            logging.getLogger('whatsapp').exception('Enquiry WhatsApp alert failed')
 
 
 @router.post('/enquiries', response_model=Payload, status_code=201)

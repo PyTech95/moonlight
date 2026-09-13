@@ -6,6 +6,7 @@ from config import db, Input, Payload, uid
 from security import principal, ScopedRepo, authorize, audit
 from storage import put_object, APP_NAME
 from emailer import send_email
+from whatsapp import send_whatsapp_template
 import uuid
 
 router = APIRouter()
@@ -16,8 +17,9 @@ THERAPY_SLUGS = {'speech-therapy', 'occupational-therapy', 'aba-therapy', 'senso
 def _sanitize_settings(doc):
     if not doc:
         return doc
-    clean = {k: v for k, v in doc.items() if k != 'smtp_app_password'}
+    clean = {k: v for k, v in doc.items() if k not in ('smtp_app_password', 'wa_access_token')}
     clean['smtp_password_set'] = bool(doc.get('smtp_app_password'))
+    clean['wa_token_set'] = bool(doc.get('wa_access_token'))
     return clean
 
 
@@ -93,11 +95,50 @@ async def test_notification(p=Depends(principal)):
     try:
         await asyncio.wait_for(send_email(s, 'Moonlight · test alert', 'This is a test message confirming your new-enquiry email alerts are set up correctly.'), timeout=12)
     except asyncio.TimeoutError:
-        raise HTTPException(504, 'The email server did not respond in time. Check the sender address and app password, then try again.')
+        raise HTTPException(400, 'The email server did not respond in time. Check the sender address and app password, then try again.')
     except Exception as exc:
-        raise HTTPException(502, f'Could not send the test email. Check the address and app password. ({type(exc).__name__})')
+        raise HTTPException(400, f'Could not send the test email. Check the address and app password. ({type(exc).__name__})')
     await audit(p, 'settings:update', 'notifications:test')
     return {'message': 'Test email sent. Check the center inbox.'}
+
+
+class WhatsappInput(Input):
+    wa_enabled: bool
+    wa_phone_number_id: str = Field(default='', max_length=60)
+    wa_access_token: str = Field(default='', max_length=1000)
+    wa_template_name: str = Field(default='', max_length=120)
+    wa_template_language: str = Field(default='en_US', max_length=12)
+    wa_recipient: str = Field(default='', max_length=25)
+
+
+@router.patch('/admin/whatsapp', response_model=Payload)
+async def update_whatsapp(data: WhatsappInput, p=Depends(principal)):
+    await authorize(p, 'settings:update')
+    changes = {'wa_enabled': data.wa_enabled, 'wa_phone_number_id': data.wa_phone_number_id.strip(),
+               'wa_template_name': data.wa_template_name.strip(), 'wa_template_language': (data.wa_template_language or 'en_US').strip(),
+               'wa_recipient': data.wa_recipient.strip(), 'wa_api_version': 'v26.0'}
+    token = data.wa_access_token.strip()
+    if token:
+        changes['wa_access_token'] = token
+    await db.settings.update_one({'org_id': p['org_id']}, {'$set': changes, '$inc': {'version': 1}})
+    await audit(p, 'settings:update', 'whatsapp')
+    return await _return_settings(p['org_id'])
+
+
+@router.post('/admin/whatsapp/test', response_model=Payload)
+async def test_whatsapp(p=Depends(principal)):
+    await authorize(p, 'settings:update')
+    s = await db.settings.find_one({'org_id': p['org_id']})
+    if not (s and s.get('wa_phone_number_id') and s.get('wa_access_token') and s.get('wa_template_name') and s.get('wa_recipient')):
+        raise HTTPException(422, 'Add the Phone Number ID, access token, template name and recipient first, then save.')
+    try:
+        await asyncio.wait_for(send_whatsapp_template(s, ['Test Family', '+910000000000', 'Test enquiry']), timeout=12)
+    except asyncio.TimeoutError:
+        raise HTTPException(400, 'WhatsApp did not respond in time. Check the token and Phone Number ID.')
+    except Exception as exc:
+        raise HTTPException(400, f'Could not send the WhatsApp test. Check the IDs, token and that the template is approved with 3 body variables. ({type(exc).__name__})')
+    await audit(p, 'settings:update', 'whatsapp:test')
+    return {'message': 'Test WhatsApp message sent. Check the center phone.'}
 
 
 @router.get('/admin/audit', response_model=Payload)
