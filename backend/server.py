@@ -10,6 +10,7 @@ from auth import router as auth_router
 from workspace import router as workspace_router
 from admin import router as admin_router
 from practice import router as practice_router
+from home_plans import router as home_plans_router
 
 
 @asynccontextmanager
@@ -19,9 +20,10 @@ async def lifespan(app):
     await db.sandboxes.create_index('token_hash', unique=True)
     await db.users.create_index([('org_id', 1), ('email', 1)], unique=True)
     await db.enquiries.create_index([('org_id', 1), ('idempotency_key', 1)], unique=True)
-    for collection in ['children', 'appointments', 'activities', 'announcements', 'requests', 'audit', 'enquiries', 'practice_videos']:
+    for collection in ['children', 'appointments', 'activities', 'announcements', 'requests', 'audit', 'enquiries', 'practice_videos', 'home_plans']:
         await db[collection].create_index([('org_id', 1), ('id', 1)], unique=True)
     await db.practice_videos.create_index([('org_id', 1), ('child_id', 1), ('published_at', -1)])
+    await db.home_plans.create_index([('org_id', 1), ('child_id', 1), ('week_start', -1)])
     try:
         init_storage()
     except Exception as exc:
@@ -63,3 +65,4 @@ app.include_router(auth_router, prefix='/api')
 app.include_router(workspace_router, prefix='/api')
 app.include_router(admin_router, prefix='/api')
 app.include_router(practice_router, prefix='/api')
+app.include_router(home_plans_router, prefix='/api')

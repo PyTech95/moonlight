@@ -38,9 +38,9 @@ async def principal(request: Request):
 
 
 PERMISSIONS = {
-    'parent': {'children:read', 'appointments:read', 'requests:create', 'activities:read', 'activities:update', 'announcements:read', 'practice_videos:read', 'practice_videos:view'},
-    'staff': {'children:read', 'appointments:read', 'activities:read', 'announcements:read', 'attendance:update', 'practice_videos:read', 'practice_videos:create', 'practice_videos:update', 'practice_videos:delete'},
-    'admin': {'children:read', 'appointments:read', 'enquiries:read', 'enquiries:update', 'requests:read', 'requests:update', 'settings:read', 'settings:update', 'audit:read', 'access:revoke', 'practice_videos:read', 'practice_videos:create', 'practice_videos:update', 'practice_videos:delete'}
+    'parent': {'children:read', 'appointments:read', 'requests:create', 'activities:read', 'activities:update', 'announcements:read', 'practice_videos:read', 'practice_videos:view', 'home_plans:read', 'home_plans:view', 'home_plans:respond'},
+    'staff': {'children:read', 'appointments:read', 'activities:read', 'announcements:read', 'attendance:update', 'practice_videos:read', 'practice_videos:create', 'practice_videos:update', 'practice_videos:delete', 'home_plans:read', 'home_plans:create', 'home_plans:update', 'home_plans:withdraw'},
+    'admin': {'children:read', 'appointments:read', 'enquiries:read', 'enquiries:update', 'requests:read', 'requests:update', 'settings:read', 'settings:update', 'audit:read', 'access:revoke', 'practice_videos:read', 'practice_videos:create', 'practice_videos:update', 'practice_videos:delete', 'home_plans:read', 'home_plans:create', 'home_plans:update', 'home_plans:withdraw'}
 }
 
 
@@ -65,12 +65,16 @@ class ScopedRepo:
     async def scope(self, collection, action):
         await authorize(self.p, action)
         query = {'org_id': self.p['org_id']}
-        if collection in {'children', 'appointments', 'activities', 'announcements', 'practice_videos'} and self.p['role'] != 'admin':
+        if collection in {'children', 'appointments', 'activities', 'announcements', 'practice_videos', 'home_plans'} and self.p['role'] != 'admin':
             field = 'guardian_ids' if self.p['role'] == 'parent' else 'staff_ids'
             children = await db.children.find({'org_id': self.p['org_id'], field: self.p['id']}, {'_id': 0, 'id': 1}).to_list(1000)
             query['id' if collection == 'children' else 'child_id'] = {'$in': [c['id'] for c in children]}
         if collection == 'practice_videos':
             query['is_deleted'] = {'$ne': True}
+        if collection == 'home_plans':
+            query['is_deleted'] = {'$ne': True}
+            if self.p['role'] == 'parent':
+                query['status'] = 'published'
         return query
 
     async def list(self, collection, action, fields=None, limit=100, offset=0):

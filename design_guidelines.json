@@ -1,7 +1,7 @@
 {
-  "project_name": "Moonlight Neurocare - Home Therapy Video Module",
+  "project_name": "Moonlight Neurocare - Weekly Home Practice Plan & Care Workspace",
   "archetype": "ORGANIC & EARTHY (Trust, Growth, Care)",
-  "context_type": "DASHBOARDS & APPS (Pediatric Healthcare & Parent Portal)",
+  "context_type": "DASHBOARDS & APPS (Pediatric Healthcare & Parent Therapy Portal)",
   "typography": {
     "heading_font": "Fraunces, Serif",
     "body_font": "Manrope, sans-serif",
@@ -33,6 +33,38 @@
       "card": "#FFFFFF",
       "subtle": "#F2F6F3"
     },
+    "guidance_categories": {
+      "sleep": {
+        "badge_bg": "#EEF2FF",
+        "badge_text": "#3730A3",
+        "border": "#C7D2FE",
+        "icon": "Moon"
+      },
+      "food": {
+        "badge_bg": "#FEF3C7",
+        "badge_text": "#92400E",
+        "border": "#FDE68A",
+        "icon": "Apple"
+      },
+      "activity": {
+        "badge_bg": "#ECFDF5",
+        "badge_text": "#065F46",
+        "border": "#A7F3D0",
+        "icon": "Activity"
+      },
+      "routine": {
+        "badge_bg": "#F0FDF4",
+        "badge_text": "#166534",
+        "border": "#BBF7D0",
+        "icon": "CalendarCheck"
+      },
+      "communication": {
+        "badge_bg": "#FDF2F8",
+        "badge_text": "#9D174D",
+        "border": "#FBCFE8",
+        "icon": "MessageCircle"
+      }
+    },
     "accent": {
       "amber": "#D97706",
       "amber_light": "#FEF3C7",
@@ -50,12 +82,39 @@
     "glassmorphism": "backdrop-blur-md bg-white/90 border border-[#D9E5DF]/60 shadow-sm",
     "card_style": "bg-white border border-[#D9E5DF] rounded-xl p-5 shadow-[0_2px_8px_rgba(20,71,64,0.04)] hover:shadow-[0_4px_16px_rgba(20,71,64,0.08)] transition-all duration-200",
     "active_glow": "ring-2 ring-[#16695C] ring-offset-2",
-    "badge_unread": "bg-[#E11D48] text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse"
+    "badge_unread": "bg-[#E11D48] text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse",
+    "checklist_item": "flex items-center gap-3 p-3.5 rounded-lg border border-[#D9E5DF] bg-[#FAF8F5]/60 hover:bg-white transition-all cursor-pointer"
   },
   "grids_and_layouts": {
     "staff_portal": "grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 sm:p-6 max-w-7xl mx-auto",
     "parent_portal": "grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 sm:p-6 max-w-6xl mx-auto",
-    "video_grid": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+    "weekly_plan_card": "bg-white border border-[#D9E5DF] rounded-2xl p-6 shadow-sm flex flex-col gap-5",
+    "weekly_plan_grid": "grid grid-cols-1 md:grid-cols-2 gap-5"
+  },
+  "weekly_home_plan_spec": {
+    "architecture": "Unified Home Practice Hub with segmented tab switcher: [Weekly Home Practice Plans] and [Short Video Guides]. Integrates unread badge counters across top navbar, mobile bottom nav, and portal tabs.",
+    "composer": {
+      "items_limit": "1 to 6 checklist items per plan",
+      "fields": [
+        "child_id (select child)",
+        "week_label (e.g. Week of July 14, 2026)",
+        "goal_note (short summary note from therapist)",
+        "why_this_helps (rational explanation for parent motivation)",
+        "checklist_items (array of 1-6 item objects containing text, category [sleep|food|activity|routine|communication], and status)",
+        "status (draft | published | withdrawn)"
+      ],
+      "therapist_actions": ["Create new plan", "Edit existing plan", "Publish plan to parent portal", "Withdraw plan", "View parent completion & comments"]
+    },
+    "parent_view": {
+      "features": [
+        "Current Active Week Plan with completion progress bar (e.g., 4/5 completed)",
+        "Interactive checkboxes for 1-6 items with smooth check animation and strike-through transition",
+        "Category Pill Badges with icons (Moon for Sleep, Apple for Food, Activity for Exercise, Calendar for Routine, Message for Communication)",
+        "'Why this helps' callout box with gentle warm sage background and lightbulb icon",
+        "Weekly parent comment box allowing one brief summary reflection sent directly to the therapist",
+        "Past Plans History Drawer/Accordion grouped by week date range"
+      ]
+    }
   },
   "motion": {
     "transitions": "transition-all duration-200 ease-in-out",
@@ -65,28 +124,30 @@
   "accessibility": {
     "contrast_ratio": "APCA & WCAG AA minimum 4.5:1",
     "focus_rings": "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#16695C] focus-visible:ring-offset-2",
-    "testing_attributes": "All interactive elements (buttons, inputs, tabs, playback controls, status indicators) MUST have data-testid in kebab-case."
+    "testing_attributes": "All interactive elements (buttons, inputs, checkboxes, tabs, status badges, textareas) MUST include explicit data-testid attributes in kebab-case."
   },
   "image_urls": {
     "therapy_ball": "https://images.unsplash.com/photo-1625650726471-c9be16a4ffaf?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzB8MHwxfHNlYXJjaHwzfHxjaGlsZCUyMHBsYXlpbmclMjBiYWxsJTIwdGhlcmFweSUyMGV4ZXJjaXNlfGVufDB8fHx8MTc4OTI3MzgzMHww&ixlib=rb-4.1.0&q=85",
-    "child_exercise": "https://images.unsplash.com/photo-1708687045030-26702e62fc65?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2MzR8MHwxfHNlYXJjaHwxfHxwZWRpYXRyaWMlMjBwaHlzaWNhbCUyMHRoZXJhcHklMjBjaGlsZCUyMGV4ZXJjaXNlc3xlbnwwfHx8fDE3ODkyNzM4MzB8MA&ixlib=rb-4.1.0&q=85",
+    "child_exercise": "https://images.unsplash.com/photo-1708687045030-26702e62fc65?crop=entropy&cs=srgb&fm=jpg&ixid=M3w7NDQ2MzR8MHwxfHNlYXJjaHwxfHxwZWRpYXRyaWMlMjBwaHlzaWNhbCUyMHRoZXJhcHklMjBjaGlsZCUyMGV4ZXJjaXNlc3xlbnwwfHx8fDE3ODkyNzM4MzB8MA&ixlib=rb-4.1.0&q=85",
     "balloon_squat": "https://images.unsplash.com/photo-1758573643908-3ebd8e68eca0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzB8MHwxfHNlYXJjaHw0fHxjaGlsZCUyMHBsYXlpbmclMjBiYWxsJTIwdGhlcmFweSUyMGV4ZXJjaXNlfGVufDB8fHx8MTc4OTI3MzgzMHww&ixlib=rb-4.1.0&q=85"
   },
   "3d_libraries": {
-    "use_case": "Not required for core video therapy workflow. Rely on high-clarity video player, HTML canvas for video recording preview, and CSS micro-animations."
+    "use_case": "Not required for core home practice & task checklists. Rely on micro-animations, clear check progress indicators, and crisp Shadcn components."
   },
-  "component_path": "/app/frontend/src/pages/",
+  "component_path": "/app/frontend/src/components/practice/",
   "instructions_to_main_agent": [
-    "Integrate Therapist Home Video Recording & Upload Modal / Drawer into Staff.jsx.",
-    "Implement child selection, therapy step bullet points (e.g. 1-3 step breakdown), target duration (5-10 mins max), camera/video recorder web-RTC simulation or local file picker preview, and publication to parent portal.",
-    "Add Parent Notification Center & Home Therapy Videos feed into Parent.jsx with date badges, read/unread state updates, step-by-step checklist for parents, therapist history, and video modal viewer.",
-    "Provide Therapist Edit / Delete capabilities for assigned home video exercises.",
-    "Ensure all buttons and inputs include rigorous data-testid attributes."
+    "Extend the existing practice hub in Parent.jsx and Staff.jsx to host both [Weekly Home Practice Plans] and [Short Video Guides] under a cohesive tabbed layout.",
+    "Implement Therapist Weekly Plan Composer with 1-6 checklist items, guidance categories (sleep, food, activity, routine, communication), goal note, and 'why this helps' note.",
+    "Provide Therapist controls to Publish, Edit, and Withdraw plans, plus view parent completion progress and weekly comments.",
+    "Implement Parent Weekly Practice Plan view with interactive item completion checkboxes, completion progress indicator, 'Why this helps' summary card, and weekly parent comment input.",
+    "Organize weekly plans by date and maintain a collapsible history of past published plans.",
+    "Add unread notification indicators across the app header, sidebar, and plan cards when new weekly plans are assigned.",
+    "Strictly maintain existing Fraunces & Manrope typography and warm care-focused color palette, ensuring data-testid attributes are present on all elements."
   ],
   "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
-    "Avoid full-screen plain dark gradients; maintain the warm care-oriented light theme of Moonlight Neurocare.",
+    "Avoid generic centered slop layout; use warm, structured organic cards with clear visual hierarchy.",
     "Containers with borders must have internal padding (p-5 or p-6) to prevent text collision.",
-    "Use explicitly declared text color on hover and focus states.",
-    "Respect responsive mobile-first patterns with generous spacing."
+    "Always set explicit hover and focus text colors to guarantee APCA contrast compliance.",
+    "Keep standard JavaScript React (.js/.jsx) file extensions consistent with existing codebase structure."
   ]
 }

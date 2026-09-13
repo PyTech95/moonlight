@@ -4,6 +4,7 @@ from pydantic import Field
 from pymongo.errors import DuplicateKeyError
 from config import db, Input, Payload, uid, now
 from security import principal, ScopedRepo, authorize, audit
+from home_plans import serialize_plan
 
 router = APIRouter()
 
@@ -24,8 +25,15 @@ async def workspace(role: Literal['parent', 'staff', 'admin'], p=Depends(princip
         read_by = video.pop('read_by', [])
         video['viewed'] = p['id'] in read_by
         video['family_viewed'] = bool(read_by)
+    plan_fields = ['id', 'child_id', 'child_name', 'week_start', 'week_end', 'title', 'note', 'why_this_helps',
+                   'items', 'status', 'author_name', 'created_at', 'published_at', 'updated_at', 'version', 'read_by', 'responses']
+    home_plans = await repo.list('home_plans', 'home_plans:read', plan_fields)
+    home_plans = [serialize_plan(plan, p) for plan in sorted(home_plans, key=lambda x: x.get('week_start', ''), reverse=True)]
+    video_unread = sum(not video['viewed'] for video in practice_videos) if role == 'parent' else 0
+    plan_unread = sum(not plan['viewed'] for plan in home_plans) if role == 'parent' else 0
     data = {'children': children, 'appointments': sorted(appointments, key=lambda x: x['starts_at']), 'activities': [], 'announcements': [], 'requests': [],
-            'practice_videos': practice_videos, 'practice_unread': sum(not video['viewed'] for video in practice_videos) if role == 'parent' else 0,
+            'practice_videos': practice_videos, 'home_plans': home_plans, 'video_unread': video_unread, 'plan_unread': plan_unread,
+            'practice_unread': video_unread + plan_unread,
             'demo': True}
     if role != 'admin':
         data['activities'] = await repo.list('activities', 'activities:read')
