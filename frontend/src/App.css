@@ -351,4 +351,38 @@ html{scroll-behavior:smooth;scroll-padding-top:110px}body{font-size:16px;line-he
   .public-header .brand-wordmark>span{font-size:8px}
 }
 
+
+/* === Contact form (Online Classes / Therapy at Home pages) === */
+.contact-form-section{background:#f6f7f1}
+.contact-form-card{max-width:760px;margin-inline:auto;background:#fff;border:1px solid #e5e8df;border-radius:10px;padding:40px 40px 34px;box-shadow:0 14px 46px #304c3412}
+.contact-form-head{margin-bottom:24px}
+.contact-form-head .eyebrow{margin-bottom:12px}
+.contact-form-head h2{font-size:27px}
+.contact-form-head p{font-size:13px;line-height:1.8;margin-top:10px;color:#5f7165;max-width:560px}
+.contact-form-card textarea{resize:vertical;min-height:104px;line-height:1.6}
+.contact-form-card .booking-form{display:flex;flex-direction:column;gap:16px}
+.contact-form-card .booking-success{text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;padding:22px 0}
+.contact-form-card .booking-success h2{font-size:24px}
+.contact-form-card .booking-success p{font-size:13px;color:#5f7165;max-width:470px;line-height:1.8}
+.enquiry-source{font-size:10px!important;color:#8a7b5a!important}
+.enquiry-message{font-size:11px!important;font-style:italic;color:#5f6f5a!important;line-height:1.6}
+@media(max-width:700px){.contact-form-card{padding:24px 20px}.contact-form-head h2{font-size:22px}}
+
+
+/* === Detail cards + spec list (Online Classes / Therapy at Home) === */
+.detail-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}
+.detail-card{background:#f6f7f1;border:1px solid #e5e8df;border-radius:9px;padding:22px 20px}
+.detail-card-icon{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:9px;background:#e6efe6;color:#446a52;margin-bottom:14px}
+.detail-card h3{font-size:15px;margin-bottom:8px}
+.detail-card p{font-size:12.5px;line-height:1.7;color:#5f7165}
+.check-list.two-col{display:grid;grid-template-columns:1fr 1fr;gap:8px 28px;margin:20px 0}
+.spec-list{list-style:none;padding:0;margin:22px 0 14px}
+.spec-list li{display:flex;gap:20px;align-items:baseline;padding:14px 0;border-bottom:1px solid #e7ebe3}
+.spec-list li:last-child{border-bottom:0}
+.spec-key{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#3f5a4a;min-width:170px;flex-shrink:0}
+.spec-key svg{color:#7e9270}
+.spec-val{font-size:13px;line-height:1.7;color:#5f7165}
+@media(max-width:900px){.detail-cards{grid-template-columns:1fr}.check-list.two-col{grid-template-columns:1fr;gap:8px}}
+@media(max-width:700px){.spec-list li{flex-direction:column;gap:5px;padding:12px 0}.spec-key{min-width:0}}
+
 @media(max-width:700px){.practice-hub-tabs{max-width:none;margin-bottom:22px}.practice-hub-tabs button{font-size:10px;padding-inline:8px}.weekly-plan-composer,.parent-weekly-plan{padding:20px}.weekly-item-editor{grid-template-columns:29px minmax(0,1fr) 34px}.weekly-item-editor select{grid-column:2/4}.weekly-item-editor input{grid-column:2/3}.weekly-item-editor>button{grid-column:3/4}.plan-composer-actions{align-items:stretch}.plan-composer-actions .button{flex:1}.staff-plan-top{flex-direction:column}.parent-plan-heading h2{font-size:23px}.plan-item-copy{align-items:flex-start;flex-direction:column;gap:7px}.past-plan>summary{grid-template-columns:1fr auto}.past-plan>summary strong{grid-column:1/-1;grid-row:2}.past-plan-body{padding-inline:15px}.parent-weekly-comment .button{width:100%}}

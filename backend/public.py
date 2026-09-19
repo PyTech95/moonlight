@@ -31,6 +31,7 @@ class EnquiryInput(Input):
     consent: bool
     source: str = Field(default='Website', max_length=100)
     country: str = Field(default='India', max_length=80)
+    message: str | None = Field(default=None, max_length=1000)
 
     @field_validator('phone')
     @classmethod
@@ -149,6 +150,7 @@ async def _notify_new_enquiry(org_id, record, data):
             f"Interest: {data.service}\n"
             f"Preferred contact: {data.contact_preference} · {data.contact_time}\n"
             f"Source: {data.source}\n"
+            + (f"Message: {data.message}\n" if data.message else "")
         )
         try:
             await send_email(s, subject, body, reply_to=data.email or None)

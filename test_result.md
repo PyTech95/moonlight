@@ -122,12 +122,12 @@ backend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 1
+  test_sequence: 2
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Recreate missing .env files and verify backend boots + core APIs work"
+    - "Enquiry endpoint accepts optional message field (contact forms on new pages)"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -194,3 +194,24 @@ agent_communication:
     -message: "RESPONSIVE VERIFICATION NEEDED. Please test the PUBLIC site header across viewports using real viewport sizes: 1920, 1440, 1280, 1024, 768, 390. Confirm for EACH: (1) NO horizontal page overflow/scroll (document scrollWidth <= innerWidth). (2) At widths >1280 the full horizontal nav shows with all 9 links (About, Therapies, Online Classes, Therapy at Home, Sports, Areas, For Parents, Resources, Contact) + Login + 'Book an assessment' button, none clipped. (3) At widths <=1280 the horizontal nav is hidden and a hamburger (.mobile-menu) button is visible; clicking it opens the mobile menu listing all links; clicking a link navigates and closes it. (4) The enlarged logo (moon icon + 'moonlight NEUROCARE' wordmark) is fully visible, not clipped by the header, at all widths. (5) The 'Contact information could not load' banner NEVER appears and contact info loads. (6) New pages /online-classes and /therapy-at-home load and their enquire/book buttons open the booking modal. Do NOT test the authenticated portal or video upload."
     -agent: "testing"
     -message: "ALL TESTS PASSED ✅. Comprehensive responsive testing completed across 6 viewports (1920, 1440, 1280, 1024, 768, 390px). (1) RESPONSIVE HEADER: Zero horizontal overflow at all viewports, logo fully visible everywhere, full horizontal nav at >1280px with all 9 links + Login + Book button, hamburger menu functional at <=1280px. (2) BANNER BUG FIX: Verified on 4 pages (/, /therapies, /contact, /online-classes) - NO error banner appears, real contact info loads correctly (+91 7982282025, Sector 37C Gurugram). (3) NEW PAGES: Both /online-classes and /therapy-at-home render correctly with hero, body sections, aside, active nav states, and all enquire/book buttons open booking modal. All requirements from review_request met. Public marketing site is fully functional and responsive."
+
+  - task: "Enquiry endpoint accepts optional message field (contact forms on new pages)"
+    implemented: true
+    working: true
+    file: "backend/public.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "Added optional 'message' field (str, max 1000) to EnquiryInput and included it in the notification email body. Contact forms on /online-classes and /therapy-at-home POST to /api/enquiries with source='Online Classes page' / 'Home Tuition / Therapy at Home page' and optional message. Verify: POST /api/enquiries works WITH message (stored) and WITHOUT message (backward compatible); source persists; existing booking flow still works; message>1000 chars rejected 422; extra unknown fields still rejected (Input forbids extras)."
+        -working: true
+        -agent: "testing"
+        -comment: "All 8 tests passed for enquiry endpoint with optional message field. (1) Valid submission WITHOUT message returns 201 with reference (MN-79B01303). (2) Valid submission WITH message returns 201 (MN-7C76A9F4) and verified via admin workspace that both message ('We are visiting from Dubai and want online sessions for our 5-year-old daughter.') and source ('Online Classes page') are correctly stored in the enquiry record. (3) Message longer than 1000 chars correctly rejected with 422. (4) All validation still enforced: consent=false => 422, invalid phone without country code => 422, invalid service 'Online Classes' => 422. (5) Unknown extra field 'nickname' correctly rejected with 422 (Input forbids extras confirmed). (6) Idempotency-Key validation working: missing header => 422, reusing same key with same body returns same reference (idempotent), reusing with different body returns 409 conflict. No 5xx errors encountered. Feature fully functional."
+
+agent_communication:
+    -agent: "main"
+    -message: "Backend change: EnquiryInput now has optional 'message' field. Please retest POST /api/enquiries: (1) valid submission WITHOUT message still returns 201 with reference. (2) valid submission WITH a message string (source e.g. 'Online Classes page') returns 201 and the stored enquiry (check via admin workspace GET) contains the message and source. (3) message longer than 1000 chars => 422. (4) still requires consent=true, valid phone (+countrycode), and service in the allowed SERVICES list. (5) Idempotency-Key header still required. Do not test object storage/video."
+    -agent: "testing"
+    -message: "Enquiry endpoint testing completed successfully. All 8 comprehensive tests passed: (1) Backward compatibility confirmed - enquiries without message work correctly. (2) New message field works - enquiries with message are created and stored correctly, verified via admin workspace that both message and source fields persist. (3) Validation working - message max length 1000 enforced, consent required, phone must have country code, service must be from allowed list. (4) Input model correctly forbids unknown fields. (5) Idempotency-Key header required and idempotency behavior working correctly (same key+body returns same reference, same key+different body returns 409). References created: MN-79B01303, MN-7C76A9F4. Feature ready for production."
