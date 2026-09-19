@@ -8,10 +8,11 @@ import { toast } from 'sonner';
 
 const WorkspaceContext=createContext(null);
 export const useWorkspace=()=>useContext(WorkspaceContext);
+const EMPTY_WORKSPACE={children:[],appointments:[],activities:[],announcements:[],requests:[],practice_videos:[],home_plans:[],enquiries:[],practice_unread:0,video_unread:0,plan_unread:0};
 const navigation={parent:[['today','Today',Sun],['child','My child',Users],['practice','Home practice',Video],['schedule','Schedule',CalendarDays],['activities','Home activities',Sprout],['updates','Classroom updates',MessageSquare],['more','More',MoreHorizontal]],staff:[['today','Today',Sun],['practice','Home practice',Video],['children','Children',Users],['classes','Classes',BookOpen],['more','More',MoreHorizontal]],admin:[['overview','Overview',LayoutDashboard],['enquiries','Enquiries & admissions',ClipboardList],['practice','Home practice',Video],['children','Children',Users],['schedule','Schedule',CalendarDays],['integrations','Integrations',Plug],['settings','Settings',Settings],['media','Site images',Image],['audit','Audit trail',ShieldCheck],['checklist','Project checklist',ListChecks]]};
 export const PortalLayout=()=>{
  const {role}=useParams(),{user,loading,logout}=useAuth(),location=useLocation();
- const [data,setData]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(true),[mobile,setMobile]=useState(false);
+ const [data,setData]=useState(EMPTY_WORKSPACE),[error,setError]=useState(''),[busy,setBusy]=useState(true),[mobile,setMobile]=useState(false);
  const refresh=async()=>{setError('');try{const res=await api.get(`/workspace/${role}`);setData(res.data);}catch(e){setError(errorText(e));}finally{setBusy(false);}};
  useEffect(()=>{if(user&&user.roles.includes(role)){setBusy(true);refresh();} /* role data is isolated server-side */},[role,user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
  useEffect(()=>setMobile(false),[location.pathname]);

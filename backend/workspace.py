@@ -18,13 +18,16 @@ async def workspace(role: Literal['parent', 'staff', 'admin'], p=Depends(princip
     children = await repo.list('children', 'children:read', fields)
     appointments = await repo.list('appointments', 'appointments:read')
     video_fields = ['id', 'child_id', 'child_name', 'therapy', 'title', 'note', 'steps', 'session_date',
-                    'duration_seconds', 'therapist_name', 'created_at', 'published_at', 'version', 'read_by']
+                    'duration_seconds', 'therapist_name', 'created_at', 'published_at', 'version', 'read_by',
+                    'processing_status', 'processing_error', 'thumbnail_path', 'caption_path', 'transcript']
     practice_videos = await repo.list('practice_videos', 'practice_videos:read', video_fields)
     practice_videos = sorted(practice_videos, key=lambda x: x.get('published_at', ''), reverse=True)
     for video in practice_videos:
         read_by = video.pop('read_by', [])
         video['viewed'] = p['id'] in read_by
         video['family_viewed'] = bool(read_by)
+        video['thumbnail_ready'] = bool(video.pop('thumbnail_path', ''))
+        video['captions_available'] = bool(video.pop('caption_path', ''))
     plan_fields = ['id', 'child_id', 'child_name', 'week_start', 'week_end', 'title', 'note', 'why_this_helps',
                    'items', 'status', 'author_name', 'created_at', 'published_at', 'updated_at', 'version', 'read_by', 'responses']
     home_plans = await repo.list('home_plans', 'home_plans:read', plan_fields)

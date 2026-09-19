@@ -3,14 +3,15 @@ import smtplib
 import ssl
 import logging
 from email.message import EmailMessage
+from vault import decrypt_secret
 
 logger = logging.getLogger('emailer')
 
 
-def _send_sync(cfg, subject, body, reply_to=None):
+def _send_sync(cfg, subject, body, reply_to=None, to_email=None):
     message = EmailMessage()
     message['From'] = cfg['smtp_username']
-    message['To'] = cfg['notify_email']
+    message['To'] = to_email or cfg['notify_email']
     if reply_to:
         message['Reply-To'] = reply_to
     message['Subject'] = subject
@@ -22,10 +23,10 @@ def _send_sync(cfg, subject, body, reply_to=None):
         smtp.ehlo()
         smtp.starttls(context=context)
         smtp.ehlo()
-        smtp.login(cfg['smtp_username'], cfg['smtp_app_password'])
+        smtp.login(cfg['smtp_username'], decrypt_secret(cfg['smtp_app_password']))
         smtp.send_message(message)
 
 
-async def send_email(cfg, subject, body, reply_to=None):
+async def send_email(cfg, subject, body, reply_to=None, to_email=None):
     """Send a plain-text email via SMTP without blocking the event loop."""
-    await asyncio.to_thread(_send_sync, cfg, subject, body, reply_to)
+    await asyncio.to_thread(_send_sync, cfg, subject, body, reply_to, to_email)

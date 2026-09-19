@@ -7,6 +7,8 @@ from security import principal, ScopedRepo, authorize, audit
 from storage import put_object, APP_NAME
 from emailer import send_email
 from whatsapp import send_whatsapp_template
+from vault import encrypt_secret
+from media_processing import validate_and_normalize_image
 import uuid
 
 router = APIRouter()
@@ -80,7 +82,7 @@ async def update_notifications(data: NotifyInput, p=Depends(principal)):
                'smtp_username': str(data.smtp_username), 'smtp_host': 'smtp.gmail.com', 'smtp_port': 587}
     pw = data.smtp_app_password.replace(' ', '').strip()
     if pw:
-        changes['smtp_app_password'] = pw
+        changes['smtp_app_password'] = encrypt_secret(pw)
     await db.settings.update_one({'org_id': p['org_id']}, {'$set': changes, '$inc': {'version': 1}})
     await audit(p, 'settings:update', 'notifications')
     return await _return_settings(p['org_id'])
@@ -119,7 +121,7 @@ async def update_whatsapp(data: WhatsappInput, p=Depends(principal)):
                'wa_recipient': data.wa_recipient.strip(), 'wa_api_version': 'v26.0'}
     token = data.wa_access_token.strip()
     if token:
-        changes['wa_access_token'] = token
+        changes['wa_access_token'] = encrypt_secret(token)
     await db.settings.update_one({'org_id': p['org_id']}, {'$set': changes, '$inc': {'version': 1}})
     await audit(p, 'settings:update', 'whatsapp')
     return await _return_settings(p['org_id'])
@@ -171,11 +173,15 @@ async def upload_media(slot: str = Form(...), name: str = Form(''), role: str = 
     if file is not None:
         if file.content_type not in MEDIA_MIME:
             raise HTTPException(422, 'Please upload a JPG, PNG, WEBP or GIF image.')
-        data = await file.read()
+        data = await file.read(6 * 1024 * 1024 + 1)
+        await file.close()
         if len(data) > 6 * 1024 * 1024:
             raise HTTPException(422, 'Image must be under 6 MB.')
-        ext = (file.filename or 'img.png').rsplit('.', 1)[-1].lower()
-        result = put_object(f'{APP_NAME}/{p["org_id"]}/{uuid.uuid4()}.{ext}', data, file.content_type)
+        try:
+            normalized, width, height = await asyncio.to_thread(validate_and_normalize_image, data)
+        except (ValueError, RuntimeError) as exc:
+            raise HTTPException(422, str(exc))
+        result = await asyncio.to_thread(put_object, f'{APP_NAME}/{p["org_id"]}/public/{uuid.uuid4()}.webp', normalized, 'image/webp')
         path = result['path']
     if slot == 'team':
         if not name.strip() or not role.strip():

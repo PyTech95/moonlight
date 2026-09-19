@@ -12,8 +12,11 @@ db = client[os.environ['DB_NAME']]
 WEB_ORIGIN = os.environ['WEB_ORIGIN']
 ALLOWED_ORIGINS = [WEB_ORIGIN, os.environ['PREVIEW_PROXY_ORIGIN']]
 APP_MODE = os.environ['APP_MODE']
-if APP_MODE != 'demo':
-    raise RuntimeError('Stage A is restricted to demo mode. Complete production acceptance gates first.')
+if APP_MODE not in {'demo', 'production'}:
+    raise RuntimeError('APP_MODE must be demo or production.')
+PRODUCTION_ORG_ID = os.environ.get('PRODUCTION_ORG_ID')
+if APP_MODE == 'production' and not PRODUCTION_ORG_ID:
+    raise RuntimeError('PRODUCTION_ORG_ID is required in production mode.')
 
 
 def now():

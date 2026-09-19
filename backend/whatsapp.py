@@ -1,5 +1,6 @@
 import logging
 import httpx
+from vault import decrypt_secret
 
 logger = logging.getLogger('whatsapp')
 
@@ -26,7 +27,7 @@ async def send_whatsapp_template(cfg, body_values):
         'type': 'template',
         'template': template,
     }
-    headers = {'Authorization': f"Bearer {cfg['wa_access_token']}", 'Content-Type': 'application/json'}
+    headers = {'Authorization': f"Bearer {decrypt_secret(cfg['wa_access_token'])}", 'Content-Type': 'application/json'}
     async with httpx.AsyncClient(timeout=15.0) as http:
         resp = await http.post(url, headers=headers, json=payload)
     if resp.is_error:

@@ -2,7 +2,7 @@ import hashlib
 import secrets
 from datetime import datetime, timezone, timedelta
 from fastapi import Request, Response, HTTPException, Depends
-from config import db, now, uid
+from config import db, now, uid, APP_MODE, PRODUCTION_ORG_ID
 
 
 def digest(token):
@@ -14,6 +14,8 @@ def cookie(response, name, value, age):
 
 
 async def sandbox(request: Request, response: Response):
+    if APP_MODE == 'production':
+        return {'id': 'production', 'org_id': PRODUCTION_ORG_ID}
     raw = request.cookies.get('mnc_demo', '')
     record = await db.sandboxes.find_one({'token_hash': digest(raw)}, {'_id': 0}) if raw else None
     if not record:
@@ -26,21 +28,31 @@ async def sandbox(request: Request, response: Response):
 
 async def principal(request: Request):
     raw = request.cookies.get('mnc_session', '')
-    session = await db.sessions.find_one({'token_hash': digest(raw), 'expires_at': {'$gt': datetime.now(timezone.utc)}}, {'_id': 0})
+    session = await db.sessions.find_one({'token_hash': digest(raw), 'expires_at': {'$gt': datetime.now(timezone.utc)}, 'revoked_at': {'$exists': False}}, {'_id': 0})
     if not session:
         raise HTTPException(401, 'Please sign in to continue.')
     user = await db.users.find_one({'id': session['user_id'], 'org_id': session['org_id'], 'active': True}, {'_id': 0, 'password_hash': 0})
     if not user:
         raise HTTPException(401, 'Your access has been revoked.')
+    if session.get('security_version', 1) != user.get('security_version', 1):
+        raise HTTPException(401, 'Your session is no longer active. Please sign in again.')
     if request.method not in {'GET', 'HEAD', 'OPTIONS'} and not secrets.compare_digest(request.headers.get('x-csrf-token', ''), session['csrf']):
         raise HTTPException(403, 'Your security token is invalid. Refresh and try again.')
-    return {**user, 'csrf': session['csrf'], 'session_hash': session['token_hash']}
+    return {**user, 'csrf': session['csrf'], 'session_hash': session['token_hash'], 'session_id': session.get('id'),
+            'mfa_session_verified': session.get('mfa_verified', False)}
 
 
 PERMISSIONS = {
-    'parent': {'children:read', 'appointments:read', 'requests:create', 'activities:read', 'activities:update', 'announcements:read', 'practice_videos:read', 'practice_videos:view', 'home_plans:read', 'home_plans:view', 'home_plans:respond'},
-    'staff': {'children:read', 'appointments:read', 'activities:read', 'announcements:read', 'attendance:update', 'practice_videos:read', 'practice_videos:create', 'practice_videos:update', 'practice_videos:delete', 'home_plans:read', 'home_plans:create', 'home_plans:update', 'home_plans:withdraw'},
-    'admin': {'children:read', 'appointments:read', 'enquiries:read', 'enquiries:update', 'requests:read', 'requests:update', 'settings:read', 'settings:update', 'audit:read', 'access:revoke', 'practice_videos:read', 'practice_videos:create', 'practice_videos:update', 'practice_videos:delete', 'home_plans:read', 'home_plans:create', 'home_plans:update', 'home_plans:withdraw'}
+    'parent': {'children:read', 'appointments:read', 'requests:create', 'activities:read', 'activities:update', 'announcements:read', 'practice_videos:read', 'practice_videos:view', 'home_plans:read', 'home_plans:view', 'home_plans:respond', 'consents:read', 'consents:sign', 'consents:withdraw'},
+    'staff': {'children:read', 'appointments:read', 'activities:read', 'announcements:read', 'attendance:update', 'practice_videos:read', 'practice_videos:create', 'practice_videos:update', 'practice_videos:delete', 'home_plans:read', 'home_plans:create', 'home_plans:update', 'home_plans:withdraw', 'consents:read'},
+    'admin': {'children:read', 'appointments:read', 'enquiries:read', 'enquiries:update', 'requests:read', 'requests:update', 'settings:read', 'settings:update', 'audit:read', 'access:revoke', 'practice_videos:read', 'practice_videos:create', 'practice_videos:update', 'practice_videos:delete', 'home_plans:read', 'home_plans:create', 'home_plans:update', 'home_plans:withdraw', 'accounts:manage', 'consents:read', 'consents:request', 'operations:manage'}
+}
+PROFILE_PERMISSIONS = {
+    'guardian': PERMISSIONS['parent'],
+    'clinical': PERMISSIONS['staff'] | {'consents:read'},
+    'reception': {'children:read', 'appointments:read', 'enquiries:read', 'enquiries:update', 'requests:read', 'requests:update'},
+    'finance': {'billing:read', 'billing:update'},
+    'administrator': PERMISSIONS['admin'] | {'accounts:manage', 'consents:read', 'consents:request', 'operations:manage'},
 }
 
 
@@ -52,7 +64,11 @@ async def authorize(p, action, resource=None):
     if resource and resource.get('org_id') != p['org_id']:
         await audit(p, action, resource.get('id'), 'not_visible')
         raise HTTPException(404, 'Record not found.')
-    if action not in PERMISSIONS.get(p['role'], set()):
+    if p.get('mfa_required') and (not p.get('mfa_enabled') or not p.get('mfa_session_verified')):
+        await audit(p, action, resource.get('id') if resource else None, 'mfa_required')
+        raise HTTPException(403, 'Multi-factor authentication setup is required for this workspace.')
+    allowed = PROFILE_PERMISSIONS.get(p.get('access_profile'), PERMISSIONS.get(p['role'], set()))
+    if action not in allowed:
         await audit(p, action, resource.get('id') if resource else None, 'forbidden')
         raise HTTPException(403, 'This workspace does not have permission for that action.')
 
@@ -71,6 +87,9 @@ class ScopedRepo:
             query['id' if collection == 'children' else 'child_id'] = {'$in': [c['id'] for c in children]}
         if collection == 'practice_videos':
             query['is_deleted'] = {'$ne': True}
+            if self.p['role'] == 'parent':
+                query['sharing_suspended'] = {'$ne': True}
+                query['processing_status'] = 'ready'
         if collection == 'home_plans':
             query['is_deleted'] = {'$ne': True}
             if self.p['role'] == 'parent':

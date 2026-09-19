@@ -1,0 +1,47 @@
+{
+  "summary": "Frontend-only regression testing completed for the parent portal login crash. Parent demo login, repeated persona switching, full parent tab navigation, and delayed workspace-load checks passed without the reported runtime exception.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Pre-login auth bootstrap",
+        "issue": "Console logs show two 401 responses from /api/auth/me before session is established. Flow still proceeds normally via demo login.",
+        "affected_selectors": [
+          "[data-testid='enter-demo']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/root/.emergent/automation_output/20260913_062254/console_20260913_062254.log",
+    "/root/.emergent/automation_output/20260913_062332/console_20260913_062332.log",
+    "/app/test_reports/artifacts_iteration_8/parent_today_cycle1.jpeg",
+    "/app/test_reports/artifacts_iteration_8/loading_state_check.jpeg",
+    "/app/test_reports/artifacts_iteration_8/final_parent_cycle3.jpeg"
+  ],
+  "action_items": [
+    "Optionally suppress or handle expected pre-session /api/auth/me 401 noise to keep console cleaner during startup.",
+    "Keep defensive workspace defaults in place; consider normalizing /workspace/{role} responses to EMPTY_WORKSPACE shape if backend ever returns null/partial payloads."
+  ],
+  "critical_code_review_comments": [
+    "PortalLayout now initializes workspace with EMPTY_WORKSPACE and renders a loading gate before Outlet content, which prevents child-page dereference crashes during workspace fetch latency.",
+    "refresh() currently applies setData(res.data) directly; if API returns null/partial shape in future, child pages using data.children[0] may regress. Consider fallback merge with EMPTY_WORKSPACE in state assignment."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_8.json"
+  ],
+  "success_rate": {
+    "backend": "N/A (frontend-only scope)",
+    "frontend": "100% for requested parent-login crash regression coverage"
+  },
+  "seed_data_creation": "No seed data created.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Executed three auth-switch cycles (parent -> logout -> staff -> logout -> parent), navigated Parent Today/My child/Home practice/Schedule/Home activities/Classroom updates/More, and validated delayed /api/workspace/parent behavior with explicit loading-state visibility. Exact reported error string was not observed in DOM, console, or page errors.",
+  "rca of the issue": "Original crash pattern is consistent with a null workspace dereference race: Parent.jsx reads data.children[0] and similar fields that fail when workspace is null during initial render. The fix in PortalLayout (EMPTY_WORKSPACE initialization + loading guard) prevents rendering dependent views with null workspace while fetch is in progress. Repro validation with 8s artificial delay showed workspace-loading visible and no runtime crash."
+}

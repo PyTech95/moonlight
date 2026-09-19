@@ -11,10 +11,18 @@ from workspace import router as workspace_router
 from admin import router as admin_router
 from practice import router as practice_router
 from home_plans import router as home_plans_router
+from access import router as access_router
+from consents import router as consents_router
+from operations import router as operations_router
+from jobs import notification_worker
+from media_processing import media_worker
+from migrations import up as migrate_up
+import asyncio
 
 
 @asynccontextmanager
 async def lifespan(app):
+    await migrate_up()
     await db.sessions.create_index('token_hash', unique=True)
     await db.sessions.create_index('expires_at', expireAfterSeconds=0)
     await db.sandboxes.create_index('token_hash', unique=True)
@@ -24,11 +32,26 @@ async def lifespan(app):
         await db[collection].create_index([('org_id', 1), ('id', 1)], unique=True)
     await db.practice_videos.create_index([('org_id', 1), ('child_id', 1), ('published_at', -1)])
     await db.home_plans.create_index([('org_id', 1), ('child_id', 1), ('week_start', -1)])
+    await db.invitations.create_index('token_hash', unique=True)
+    await db.invitations.create_index('expires_at', expireAfterSeconds=0)
+    await db.password_reset_tokens.create_index('token_hash', unique=True)
+    await db.password_reset_tokens.create_index('expires_at', expireAfterSeconds=0)
+    await db.mfa_challenges.create_index('token_hash', unique=True)
+    await db.mfa_challenges.create_index('expires_at', expireAfterSeconds=0)
+    await db.access_grants.create_index([('org_id', 1), ('user_id', 1), ('child_id', 1)])
+    await db.consents.create_index([('org_id', 1), ('child_id', 1), ('purpose', 1), ('status', 1)])
+    await db.notification_jobs.create_index([('org_id', 1), ('dedupe_key', 1)], unique=True)
+    await db.backups.create_index([('org_id', 1), ('created_at', -1)])
+    await db.media_jobs.create_index([('org_id', 1), ('resource_id', 1), ('created_at', -1)])
     try:
         init_storage()
     except Exception as exc:
         logging.getLogger('storage').warning('Storage init deferred: %s', exc)
+    worker = asyncio.create_task(notification_worker())
+    media = asyncio.create_task(media_worker())
     yield
+    worker.cancel()
+    media.cancel()
     client.close()
 
 
@@ -66,3 +89,6 @@ app.include_router(workspace_router, prefix='/api')
 app.include_router(admin_router, prefix='/api')
 app.include_router(practice_router, prefix='/api')
 app.include_router(home_plans_router, prefix='/api')
+app.include_router(access_router, prefix='/api')
+app.include_router(consents_router, prefix='/api')
+app.include_router(operations_router, prefix='/api')
