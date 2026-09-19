@@ -101,3 +101,44 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+user_problem_statement: "Deploy the Moonlight Neurocare app. Deploy failed because backend/.env (and frontend/.env) were missing/gitignored, causing backend crash-loop (KeyError MONGO_URL, DATA_ENCRYPTION_KEY) and deployer pull_source failure."
+
+backend:
+  - task: "Recreate missing .env files and verify backend boots + core APIs work"
+    implemented: true
+    working: true
+    file: "backend/.env, backend/config.py, backend/vault.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "Recreated backend/.env (MONGO_URL, DB_NAME, WEB_ORIGIN, PREVIEW_PROXY_ORIGIN, APP_MODE=demo, generated DATA_ENCRYPTION_KEY Fernet key) and frontend/.env (REACT_APP_BACKEND_URL). Backend now boots; /api/health returns ok. Need smoke verification of core public + auth/demo portal endpoints after env recreation. Note: object storage init returns 400 in preview (deferred, non-fatal)."
+        -working: true
+        -agent: "testing"
+        -comment: "Backend smoke test completed successfully. All 13 tests passed: (1) Health endpoint returns correct response with status=ok, mode=demo, stage=A. (2) Public endpoints working: settings, reviews, enquiry creation with idempotency. (3) Demo auth flow working for all roles (parent, staff, admin) - creates demo sessions correctly. (4) Authenticated endpoints working: /auth/me, workspace endpoints for all roles return proper data with children/appointments/activities. (5) Admin endpoints working: enquiries list, settings retrieval. Object storage init returns 400 as expected (deferred, non-fatal). No 5xx errors encountered. Origin-check middleware working correctly (requires no Origin header or matching origin)."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Recreate missing .env files and verify backend boots + core APIs work"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    -agent: "main"
+    -message: "Backend crash was due to missing .env files (gitignored, lost). Recreated both. Backend healthy now. Please run a backend smoke test: GET /api/health, key public endpoints (home/practice content, locations/enquiry create), and the demo portal/auth flow if reachable without external creds. This is a demo app (APP_MODE=demo, passwordless per-browser demo portal). Do NOT test object storage/video upload (storage init returns 400 in preview - known, deferred). Report any 5xx or origin-check 403 issues."
+    -agent: "testing"
+    -message: "Backend smoke test completed successfully - all core APIs working after .env recreation. Tested: health check, public endpoints (settings/reviews/enquiry creation), demo auth flow for all 3 roles (parent/staff/admin), authenticated workspace endpoints, and admin endpoints. All 13 tests passed with no 5xx errors. Object storage 400 error confirmed as expected/non-fatal. Origin-check middleware working correctly. Backend is fully functional and ready for deployment."
+
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "13/13 backend smoke tests passed after .env recreation. Health ok, public content, enquiry POST (no origin-check 403), demo auth for all 3 roles, workspace + admin endpoints all working. Object storage 400 confirmed deferred/non-fatal."
