@@ -20,6 +20,6 @@
   "seed_data_creation": "Per-sandbox seed via POST /api/auth/demo (isolated by mnc_demo cookie). No shared seed modified.",
   "retest_needed": false,
   "main_agent_can_self_test": true,
-  "context_for_next_testing_agent": "To run backend suite: `REACT_APP_BACKEND_URL=https://moonlight-secure.preview.emergentagent.com pytest /app/backend/tests/test_stage_a_core_flows.py -v`. Frontend deployed at https://moonlight-secure.preview.emergentagent.com. Console 401 errors on public pages are expected (GET /api/auth/me before login). Booking modal fields: input placeholders differ from `name` attributes; open modal from 'Book an assessment' CTA to inspect if writing new UI tests. Storage/image upload in Admin Settings intentionally deferred (Stage A) - do not treat as blocker.",
+  "context_for_next_testing_agent": "To run backend suite: `REACT_APP_BACKEND_URL=https://launch-pad-416.preview.emergentagent.com pytest /app/backend/tests/test_stage_a_core_flows.py -v`. Frontend deployed at https://launch-pad-416.preview.emergentagent.com. Console 401 errors on public pages are expected (GET /api/auth/me before login). Booking modal fields: input placeholders differ from `name` attributes; open modal from 'Book an assessment' CTA to inspect if writing new UI tests. Storage/image upload in Admin Settings intentionally deferred (Stage A) - do not treat as blocker.",
   "rca of the issue": "N/A - no bugs found."
 }

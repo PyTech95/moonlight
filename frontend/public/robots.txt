@@ -3,4 +3,4 @@ Allow: /
 Disallow: /portal/
 Disallow: /login
 
-Sitemap: https://moonlight-deploy.preview.emergentagent.com/sitemap.xml
+Sitemap: https://launch-pad-416.preview.emergentagent.com/sitemap.xml

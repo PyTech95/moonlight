@@ -16,7 +16,7 @@ assessment enquiry + a passwordless per-browser **demo portal** with Parent, Car
   public, workspace, admin, security, seed, storage; full frontend src/pages/components).
 - Created `backend/.env`:
   - `MONGO_URL`, `DB_NAME` (platform defaults)
-  - `WEB_ORIGIN=https://moonlight-secure.preview.emergentagent.com`
+  - `WEB_ORIGIN=https://launch-pad-416.preview.emergentagent.com`
   - `PREVIEW_PROXY_ORIGIN=https://moonlight-secure.cluster-5.preview.emergentcf.cloud`
     (the origin the preview proxy rewrites browser requests to — required for the
     server's origin-check middleware to accept POST/PATCH).
