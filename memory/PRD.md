@@ -125,3 +125,10 @@ Then redeploy. Without correct origins, POST /enquiries and /auth/* will 403.
   until the center supplies valid provider credentials.
 - **P2 — Optional engagement**: Parent completion/feedback per video and optional email or
   WhatsApp “new practice guide” links. Payments, Instagram, and live teletherapy remain unbuilt.
+
+## 2026-09-19 · Deploy fix + new pages + header responsive
+- Recovered lost gitignored env files: recreated backend/.env (MONGO_URL, DB_NAME, WEB_ORIGIN, PREVIEW_PROXY_ORIGIN, APP_MODE=demo, generated DATA_ENCRYPTION_KEY) and frontend/.env (REACT_APP_BACKEND_URL). This unblocked deploy (pull_source) and fixed backend crash-loop.
+- New public pages: /online-classes (OnlineClasses.jsx) and /therapy-at-home (TherapyAtHome.jsx). Informational, reuse existing components + Book-an-assessment modal. Added to main nav (PublicLayout links) and cross-linked.
+- Header logo enlarged (icon img + .brand-wordmark, header-scoped so footer/portal/login logos unchanged).
+- Removed the "Contact information could not load / Try again" banner from PublicLayout (org loads fine via GET /api/public/settings; banner was a transient false alarm).
+- Fixed header horizontal overflow: header/utility container widened to min(1580px, 100%-56px); responsive nav — full 9-link horizontal nav >1280px, collapses to hamburger <=1280px, compaction <=1360px. Verified by frontend testing agent across 1920/1440/1280/1024/768/390 (no overflow, all functional).

@@ -142,3 +142,55 @@ agent_communication:
         -working: true
         -agent: "testing"
         -comment: "13/13 backend smoke tests passed after .env recreation. Health ok, public content, enquiry POST (no origin-check 403), demo auth for all 3 roles, workspace + admin endpoints all working. Object storage 400 confirmed deferred/non-fatal."
+
+frontend:
+  - task: "Remove 'Contact information could not load' banner + verify org contact info loads"
+    implemented: true
+    working: true
+    file: "frontend/src/components/PublicLayout.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "Removed the connection-warning banner ('Contact information could not load. Try again') from PublicLayout. The org data loads fine from GET /api/public/settings (phone/address render in utility bar + footer). Verify banner never appears and contact info loads on public pages."
+        -working: true
+        -agent: "testing"
+        -comment: "Banner bug fix verified successfully. Tested 4 pages (/, /therapies, /contact, /online-classes): (1) NO error banner (data-testid='organization-load-error') or .connection-warning element found on any page. (2) Real contact info loads correctly in utility bar (phone: +91 7982282025, address: Sector 37C, Gurugram) and footer (full address: First Floor, Plot No. 26B, opposite Alpine Convent School, near Param Ultrasound, Sector 37C, Gurugram, Haryana 122001). All tests passed."
+  - task: "Header logo enlarged (+25% then +20% header-scoped) + two new pages in nav"
+    implemented: true
+    working: true
+    file: "frontend/src/App.css, frontend/src/pages/OnlineClasses.jsx, frontend/src/pages/TherapyAtHome.jsx, frontend/src/App.js, frontend/src/components/PublicLayout.jsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "Header logo scaled up (header-scoped so footer/portal logos unchanged). Added /online-classes and /therapy-at-home marketing pages, both in main nav, using existing components + Book-an-assessment booking modal CTA. Verify pages load, nav links work + show active state, logo not clipped/overflowing, booking modal opens from new pages."
+        -working: true
+        -agent: "testing"
+        -comment: "New pages verified successfully. (1) /online-classes: Hero title/intro visible, 'How it works' section visible, aside 'Your next step' visible, nav link shows active state, main enquire button opens booking modal, aside book button opens booking modal. (2) /therapy-at-home: Hero title/intro visible, 'How it works' section visible, aside 'Your next step' visible, nav link shows active state, main enquire button opens booking modal, aside book button opens booking modal. Logo fully visible (icon + wordmark) at all tested viewports. All tests passed."
+  - task: "Fix header horizontal overflow + make header fully responsive"
+    implemented: true
+    working: true
+    file: "frontend/src/App.css"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "User reported header overflowing horizontally (Book button cut off, horizontal scroll) after logo enlargement. Root cause: header content constrained to min(1280px) container; enlarged logo + 9 nav items exceeded it. Fix: widened header/utility container to min(1580px, 100%-56px); properly enlarged the real logo parts (icon img + .brand-wordmark text, header-scoped); added responsive breakpoints — full horizontal nav >1280px, collapses to hamburger menu <=1280px, with compaction at <=1360px. Verified at 1920: no horizontal overflow, all nav items + Book button fit, logo visibly larger. NEEDS responsive verification at 1280/1024/768/390 (screenshot tool cannot resize)."
+        -working: true
+        -agent: "testing"
+        -comment: "Responsive header verified successfully across all 6 viewports (1920, 1440, 1280, 1024, 768, 390px). RESULTS: (1) NO horizontal overflow at any viewport (scrollWidth = innerWidth, 0px overflow). (2) At widths >1280px (1920, 1440): Full horizontal nav visible with all 9 links (About, Therapies, Online Classes, Therapy at Home, Sports, Areas, For Parents, Resources, Contact) + Login link + 'Book an assessment' button, hamburger menu hidden. (3) At widths <=1280px (1280, 1024, 768, 390): Horizontal nav hidden, hamburger menu (.mobile-menu) visible and functional - opens on click showing all 9 nav links, clicking 'Online Classes' navigates to /online-classes and closes menu. (4) Logo (moon icon + 'moonlight NEUROCARE' wordmark) fully visible at all widths, not clipped. All responsive requirements met."
+
+agent_communication:
+    -agent: "main"
+    -message: "Frontend-only changes. Please verify on public site: (1) The 'Contact information could not load. Try again' banner NEVER appears and header/footer contact info (phone +917982282025, Sector 37C Gurugram address) loads correctly. (2) New pages /online-classes and /therapy-at-home render fully (hero image, sections, aside CTA). (3) Nav shows 'Online Classes' and 'Therapy at Home' with active underline and they route correctly. (4) Clicking the enquire/book buttons on the new pages opens the booking modal. (5) Header logo displays larger without clipping or overflowing the header, on desktop and mobile widths. Do NOT test the authenticated portal or object storage/video upload."
+    -agent: "main"
+    -message: "RESPONSIVE VERIFICATION NEEDED. Please test the PUBLIC site header across viewports using real viewport sizes: 1920, 1440, 1280, 1024, 768, 390. Confirm for EACH: (1) NO horizontal page overflow/scroll (document scrollWidth <= innerWidth). (2) At widths >1280 the full horizontal nav shows with all 9 links (About, Therapies, Online Classes, Therapy at Home, Sports, Areas, For Parents, Resources, Contact) + Login + 'Book an assessment' button, none clipped. (3) At widths <=1280 the horizontal nav is hidden and a hamburger (.mobile-menu) button is visible; clicking it opens the mobile menu listing all links; clicking a link navigates and closes it. (4) The enlarged logo (moon icon + 'moonlight NEUROCARE' wordmark) is fully visible, not clipped by the header, at all widths. (5) The 'Contact information could not load' banner NEVER appears and contact info loads. (6) New pages /online-classes and /therapy-at-home load and their enquire/book buttons open the booking modal. Do NOT test the authenticated portal or video upload."
+    -agent: "testing"
+    -message: "ALL TESTS PASSED ✅. Comprehensive responsive testing completed across 6 viewports (1920, 1440, 1280, 1024, 768, 390px). (1) RESPONSIVE HEADER: Zero horizontal overflow at all viewports, logo fully visible everywhere, full horizontal nav at >1280px with all 9 links + Login + Book button, hamburger menu functional at <=1280px. (2) BANNER BUG FIX: Verified on 4 pages (/, /therapies, /contact, /online-classes) - NO error banner appears, real contact info loads correctly (+91 7982282025, Sector 37C Gurugram). (3) NEW PAGES: Both /online-classes and /therapy-at-home render correctly with hero, body sections, aside, active nav states, and all enquire/book buttons open booking modal. All requirements from review_request met. Public marketing site is fully functional and responsive."
