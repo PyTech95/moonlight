@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, Check, MapPin, CircleHelp, Video, Wifi, MessageCircle, ClipboardList, Sprout, CalendarCheck, ShieldCheck, Monitor, Users, Clock, Laptop, Globe } from 'lucide-react';
+import { ArrowUpRight, Check, MapPin, CircleHelp, Video, Wifi, MessageCircle, ClipboardList, Sprout, CalendarCheck, ShieldCheck, Monitor, Users, Clock, Laptop, Globe, CalendarDays } from 'lucide-react';
 import { FinalCTA, FAQSection, Reveal } from '../components/PublicSections';
 import ContactForm from '../components/ContactForm';
 
@@ -39,6 +39,15 @@ const SCHEDULE = [
   ['Frequency', 'Weekly or fortnightly — agreed together after a first conversation'],
   ['Timings', 'Weekday and early-evening slots, confirmed by the center'],
   ['Language', 'English now; Hindi support planned as the team grows'],
+];
+
+const WEEK = [
+  ['Monday', '10:00 · 1:1 session', '', '5:00 · Parent coaching'],
+  ['Tuesday', '11:00 · 1:1 session', '4:30 · Small group', ''],
+  ['Wednesday', '10:30 · 1:1 session', '', '6:00 · Parent coaching'],
+  ['Thursday', '11:00 · 1:1 session', '5:00 · Small group', ''],
+  ['Friday', '10:00 · 1:1 session', '', '4:30 · Parent coaching'],
+  ['Saturday', '10:00 · Small group', '11:30 · 1:1 session', ''],
 ];
 
 export default function OnlineClasses(){
@@ -132,6 +141,15 @@ export default function OnlineClasses(){
         <div className="aside-detail"><CircleHelp size={19}/><div><strong>Availability & fees</strong><p>To be confirmed by the center. No slot is reserved by an enquiry.</p></div></div>
         <span className="small muted">Prefer in-person, at home? Explore <Link to="/therapy-at-home" data-testid="online-home-link">therapy at home</Link>.</span>
       </aside>
+    </section>
+
+    <section className="container section-pad top-zero" data-testid="online-timetable">
+      <div className="timetable-head"><span className="eyebrow">A SAMPLE WEEK</span><h2>Weekly class timetable.</h2><p>An example of how a week could look. Actual days, times and formats are arranged with your family and confirmed by the center.</p></div>
+      <div className="timetable">
+        <div className="timetable-row timetable-hd"><span>Day</span><span>Morning</span><span>Afternoon</span><span>Evening</span></div>
+        {WEEK.map(([day,m,a,e],i)=><div className="timetable-row" key={day} data-testid={`timetable-${i}`}><span className="tt-day"><CalendarDays size={15}/> {day}</span><span>{m}</span><span>{a}</span><span>{e}</span></div>)}
+      </div>
+      <span className="small muted">Sample only · times shown are illustrative · no slot is reserved by an enquiry.</span>
     </section>
 
     <ContactForm source="Online Classes page" eyebrow="ENQUIRE ABOUT ONLINE CLASSES" title="Send us a message" description="Share a few details about your child and what you’re looking for. The team will reach out to talk through online sessions, suitability and next steps." defaultService="I am not sure" idPrefix="online"/>

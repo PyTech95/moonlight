@@ -41,6 +41,8 @@ const SCHEDULE = [
   ['Who attends', 'A parent or carer present throughout every visit'],
 ];
 
+const AREAS = ['Sector 37C','Sector 38','Sector 39','Sector 40','Palam Vihar','DLF Phase 1','DLF Phase 2','DLF Phase 3','Sushant Lok','Sohna Road','South City','Nirvana Country','Sector 56','Sector 57'];
+
 export default function TherapyAtHome(){
   return <>
     <section className="sport-hero"><div className="container">
@@ -132,6 +134,12 @@ export default function TherapyAtHome(){
         <div className="aside-detail"><CircleHelp size={19}/><div><strong>Availability & fees</strong><p>To be confirmed by the center. No visit is reserved by an enquiry.</p></div></div>
         <span className="small muted">Live further away? Explore <Link to="/online-classes" data-testid="home-online-link">online classes</Link>.</span>
       </aside>
+    </section>
+
+    <section className="container section-pad top-zero" data-testid="home-areas">
+      <div className="timetable-head"><span className="eyebrow">WHERE WE VISIT</span><h2>Gurugram areas we may cover.</h2><p>Home visits are currently focused around Sector 37C and nearby neighbourhoods. Coverage for your specific area is confirmed by the center when you enquire.</p></div>
+      <div className="area-chips">{AREAS.map((a,i)=><span className="area-chip" key={a} data-testid={`area-${i}`}><MapPin size={13}/> {a}</span>)}</div>
+      <span className="small muted">Illustrative list · not all areas may be available · coverage confirmed on enquiry.</span>
     </section>
 
     <ContactForm source="Home Tuition / Therapy at Home page" eyebrow="ENQUIRE ABOUT A HOME VISIT" title="Send us a message" description="Share a few details about your child, your home and what you’re looking for. The team will reach out to talk through home visits, coverage and next steps." defaultService="I am not sure" idPrefix="home"/>

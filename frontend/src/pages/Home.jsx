@@ -7,6 +7,7 @@ import { mediaUrl } from '../lib/api';
 import { useOrganization, useBooking } from '../lib/context';
 import { SectionHeading, ServiceGrid, GettingStarted, FAQSection, FinalCTA, CarePrinciples, SportsShowcase, DirectorSection, Reveal } from '../components/PublicSections';
 import GoogleReviews from '../components/GoogleReviews';
+import Testimonials from '../components/Testimonials';
 import { AreasWeServe } from './Locations';
 
 const HERO_EASE = [0.22, 1, 0.36, 1];
@@ -43,6 +44,7 @@ export default function Home(){
     <section className="partnership-section section-pad"><div className="container partnership-grid"><div><span className="eyebrow">TOGETHER, BEYOND THE SESSION</span><h2 className="section-title" data-testid="partnership-title">You know your child.<br/>We value what you know.</h2><p>Your questions, observations and everyday moments matter. Shared goals and thoughtful home activities help keep your family part of the conversation.</p><ul className="check-list"><li><Check size={17}/> Goals shaped around everyday life</li><li><Check size={17}/> Space to share what’s working — and what isn’t</li><li><Check size={17}/> Updates that make sense to your family</li></ul><Link className="text-link" to="/for-parents" data-testid="partnership-link">Our partnership with parents <ArrowUpRight size={18}/></Link></div><div className="portal-preview"><div className="preview-header"><span><Heart size={17}/> A LITTLE WINDOW INTO THEIR DAY</span><span className="status sage">Fictional demo</span></div><h3 data-testid="portal-preview-greeting">Hello, Aarav’s family <span>☀</span></h3><p>Every little moment matters.</p><div className="preview-activity"><span className="preview-leaf"><Leaf size={24}/></span><div><span>THIS WEEK’S HOME ACTIVITY</span><h4>A little choice, a meaningful moment</h4><p>Communication through child-led play</p></div><ArrowUpRight size={20}/></div><div className="preview-bottom"><span><Check size={15}/> At your family’s pace</span><Link to="/login" data-testid="preview-portal-link">Explore parent portal <ArrowRight size={16}/></Link></div></div></div></section>
     <DirectorSection/>
     <AreasWeServe/>
+    <Testimonials/>
     <GoogleReviews/>
     <section className="visit-band"><div className="container visit-inner"><span className="visit-icon"><MapPin size={28}/></span><div><span className="eyebrow">A PLACE TO BEGIN</span><h2 data-testid="visit-center-title">Find us in Sector 37C, Gurugram.</h2><p>Opposite Alpine Convent School · Center details awaiting verification</p></div><Link className="button outlined" to="/locations/gurugram-sector-37c" data-testid="home-directions">Plan your visit <ArrowUpRight size={17}/></Link></div></section>
     <FAQSection/><FinalCTA/>
