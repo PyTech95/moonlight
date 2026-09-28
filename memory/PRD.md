@@ -159,3 +159,12 @@ Without correct WEB_ORIGIN/PREVIEW_PROXY_ORIGIN, POST /api/auth/* and /api/enqui
 - ENQUIRY EMAIL: every POST /api/enquiries now emails the center inbox ENQUIRY_NOTIFY_EMAIL=moonlightneurocare@gmail.com via Emergent-managed Resend (backend/resend_mailer.py, _send_center_alert in public.py, server-side escaped template, _assert_safe_email gate). notification.status -> 'Sent'. Testing iteration_2: 7/7 backend pass. Env added: EMERGENT_EMAIL_KEY, EMAIL_FROM_NAME, ENQUIRY_NOTIFY_EMAIL.
 - RESPONSIVE: new Login has @media(max-width:920px) single-column; editor bar @media(max-width:640px); existing site already fully responsive.
 - DEPLOY NOTE: also set as deploy secrets (besides earlier list): EMERGENT_EMAIL_KEY, EMAIL_FROM_NAME, ENQUIRY_NOTIFY_EMAIL.
+
+## Production launch — demo login removed (2026-06)
+- Switched APP_MODE=demo -> production. Single fixed org PRODUCTION_ORG_ID=c0ad5d45-416b-49f2-bb23-48652b2020ab (no per-browser sandbox).
+- Real owner admin seeded idempotently at startup (seed_production): moonlightneurocare@gmail.com / Vgkmqmdzl124#Care (bcrypt, no MFA, updates hash on ADMIN_PASSWORD rotation). Staff/parent via admin invitations.
+- REMOVED all demo login: instant-persona UI gone from Login.jsx; POST /auth/demo -> 404; portal demo banner gated (data.demo); assessment demo-notice gated (organization.demo). health returns mode=production.
+- Stripped demo/'fictional'/'synthetic'/'Stage A' copy across public + portal (Home, PublicLayout footer, BookingModal, Assessment, Information privacy/terms, Admin, AdminSettings, Parent, Staff). Privacy/terms rewritten to production-accurate wording (enquiries ARE emailed to the center).
+- Enquiry email + admin live editor verified still working in production.
+- Testing iteration_3: 9/9 backend production tests + 100% frontend UI checks. Stale demo-mode test files deleted.
+- Env added: PRODUCTION_ORG_ID, ADMIN_EMAIL, ADMIN_PASSWORD (must also be set as deploy secrets).

@@ -1,0 +1,38 @@
+{
+  "summary": "Independent end-to-end verification of the switch to APP_MODE=production. Wrote /app/backend/tests/test_production_mode.py (9 tests, all pass) covering: health mode, real admin login, /auth/me demo:false, wrong-password 401, unknown-email 401, /auth/demo 404, enquiry submission + admin visibility in the single production org, admin live-editor PATCH persistence, and PATCH auth guard. Ran Playwright against the public URL to confirm: /login shows only email+password form (no demo testids), admin login redirects to /portal/admin/overview, no portal-demo-notice or change-demo-persona in portal, admin-edit-website button opens /?edit=1, live-editor-bar appears, editing a data-ml-key and blurring persists after full page reload, /policies/privacy has no 'Stage A'/'demonstration workspace', /book-assessment has no 'Demonstration' notice, footer has no 'Stage A preview'. Restored home-hero-title-1 to default after the persistence check.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "N/A - test file", "issue": "Legacy /app/backend/tests/test_login_and_editor.py and 2 tests in test_enquiries.py still target the removed demo admin (admin@moonlight.demo / Moonlight@2026) and now fail with 401 in production. They should be removed or rewritten to use the real admin credentials."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_production_mode.py",
+    "/app/test_reports/pytest/production_mode.xml",
+    "/app/test_reports/pytest/production_full.xml"
+  ],
+  "action_items": [
+    "Delete or migrate /app/backend/tests/test_login_and_editor.py (uses removed demo admin & /auth/demo).",
+    "Migrate 2 admin-login tests inside /app/backend/tests/test_enquiries.py (test_enquiry_success_returns_reference_and_notifies, test_enquiry_visible_in_admin_list_same_sandbox) to the real admin credentials — same coverage already exists in test_production_mode.py so they can also be removed."
+  ],
+  "critical_code_review_comments": [
+    "seed_production is idempotent by email; good. Verify that on ADMIN_PASSWORD rotation the seed updates the existing bcrypt hash (not just creates when missing) — currently ADMIN_EMAIL/ADMIN_PASSWORD-driven; if seed only inserts when absent, rotating .env password won't propagate. Please confirm seed.py updates password on change.",
+    "backend/tests/test_login_and_editor.py is stale — it explicitly asserts /auth/demo returns 200; this contradicts the production contract. Kept to avoid modifying business logic, but should be deleted by main agent.",
+    "public.py notification.status initial value 'Not Configured' remains (see iteration_2 comment). Consider 'Queued' before background dispatch."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_production_mode.py"
+  ],
+  "success_rate": {"backend": "100% (9/9 new production-mode tests)", "frontend": "100% (all UI checks passed)"},
+  "test_credentials": "moonlightneurocare@gmail.com / Vgkmqmdzl124#Care (admin, real)",
+  "seed_data_creation": "One MN- enquiry created in production org via test_enquiry_submission_and_admin_visibility (idempotency-key prefixed TEST-). home-hero-title-1 was briefly edited then restored to 'Support for your child.' via PATCH /api/admin/content.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "APP_MODE=production. Real admin only: moonlightneurocare@gmail.com / Vgkmqmdzl124#Care. No sandbox isolation — everything hits PRODUCTION_ORG_ID. Legacy tests test_login_and_editor.py and 2 tests in test_enquiries.py fail because they still expect demo credentials — these are NOT product bugs. To run production tests: `REACT_APP_BACKEND_URL=... WEB_ORIGIN=... python -m pytest backend/tests/test_production_mode.py -v`.",
+  "rca of the issue": "No product bugs. Only stale legacy test files carry expectations from demo-mode (/auth/demo=200, admin@moonlight.demo login). They should be deleted or converted to production credentials."
+}
