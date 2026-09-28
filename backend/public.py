@@ -14,6 +14,8 @@ from seed import SETTINGS
 from storage import get_object, APP_NAME
 from emailer import send_email
 from whatsapp import send_whatsapp_template
+from resend_mailer import send_email as send_resend_email
+from html import escape
 
 router = APIRouter()
 NOTIFY_FIELDS = ('smtp_app_password', 'smtp_username', 'notify_email', 'notify_enabled', 'smtp_host', 'smtp_port',
@@ -134,7 +136,45 @@ async def reviews():
     return data
 
 
+async def _send_center_alert(org_id, record, data):
+    to = os.environ.get('ENQUIRY_NOTIFY_EMAIL', '').strip()
+    if not to:
+        return
+    rows = [('Reference', record['reference']), ('Name', data.guardian_name), ('Phone', data.phone),
+            ('Email', data.email or 'Not provided'), ('Interest', data.service),
+            ('Preferred contact', f'{data.contact_preference} · {data.contact_time}'),
+            ('Country', data.country), ('Source', data.source)]
+    body_rows = ''.join(
+        f'<tr><td style="padding:7px 12px;background:#f2f8f4;font-weight:600;width:170px;border-bottom:1px solid #e3ece6">{escape(str(label))}</td>'
+        f'<td style="padding:7px 12px;border-bottom:1px solid #e3ece6">{escape(str(value))}</td></tr>'
+        for label, value in rows)
+    html = (
+        '<table role="presentation" width="100%" style="border-collapse:collapse;background:#f4f1e9;padding:0">'
+        '<tr><td style="padding:24px">'
+        '<table role="presentation" width="100%" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:14px;'
+        'border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;color:#183a33;overflow:hidden">'
+        '<tr><td style="background:#1f6b58;color:#ffffff;padding:20px 24px">'
+        '<div style="font-size:18px;font-weight:700">New assessment enquiry</div>'
+        '<div style="font-size:13px;opacity:.85;margin-top:2px">Moonlight Neurocare · website</div></td></tr>'
+        '<tr><td style="padding:20px 24px">'
+        '<p style="margin:0 0 14px;color:#516b63;font-size:14px">A family just submitted an enquiry on your website. Details below — reply to reach them.</p>'
+        '<table role="presentation" width="100%" style="border-collapse:collapse;font-size:14px">'
+        f'{body_rows}</table>'
+        '<p style="font-size:12px;color:#8a9a92;margin-top:20px">Sent by Moonlight Neurocare. We never ask for passwords or card details by email.</p>'
+        '</td></tr></table></td></tr></table>'
+    )
+    try:
+        await send_resend_email(to=to, subject=f'New enquiry · {data.service} · {record["reference"]}',
+                                html=html, reply_to=data.email or None)
+        await db.enquiries.update_one({'org_id': org_id, 'id': record['id']},
+                                      {'$set': {'notification.status': 'Sent', 'notification.attempts': 1}})
+    except Exception:
+        logging.getLogger('mailer').exception('Enquiry center email failed')
+
+
 async def _notify_new_enquiry(org_id, record, data):
+    # Always deliver a copy to the center inbox via the managed email provider.
+    await _send_center_alert(org_id, record, data)
     s = await db.settings.find_one({'org_id': org_id})
     if not s:
         return
