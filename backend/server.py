@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import logging
-from config import db, client, ALLOWED_ORIGINS
+from config import db, client, ALLOWED_ORIGINS, APP_MODE, PRODUCTION_ORG_ID
 from storage import init_storage
 from public import router as public_router
 from auth import router as auth_router
@@ -17,6 +17,7 @@ from operations import router as operations_router
 from jobs import notification_worker
 from media_processing import media_worker
 from migrations import up as migrate_up
+from seed import seed_production
 import asyncio
 
 
@@ -43,6 +44,8 @@ async def lifespan(app):
     await db.notification_jobs.create_index([('org_id', 1), ('dedupe_key', 1)], unique=True)
     await db.backups.create_index([('org_id', 1), ('created_at', -1)])
     await db.media_jobs.create_index([('org_id', 1), ('resource_id', 1), ('created_at', -1)])
+    if APP_MODE == 'production':
+        await seed_production(PRODUCTION_ORG_ID)
     try:
         init_storage()
     except Exception as exc:
@@ -80,7 +83,7 @@ async def privacy_headers(request: Request, call_next):
 @app.get('/api/health')
 async def health():
     await db.command('ping')
-    return {'status': 'ok', 'mode': 'demo', 'stage': 'A'}
+    return {'status': 'ok', 'mode': APP_MODE, 'stage': 'A'}
 
 
 app.include_router(public_router, prefix='/api')

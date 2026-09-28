@@ -1,4 +1,5 @@
 from datetime import datetime, timezone, timedelta
+import os
 import secrets
 import bcrypt
 from config import db, uid, now
@@ -43,3 +44,22 @@ async def seed_demo(org_id):
     await db.activities.update_one({'org_id': org_id, 'id': activity['id']}, {'$setOnInsert': activity}, upsert=True)
     notice = {'id': 'demo-class-notice', 'org_id': org_id, 'child_id': 'demo-aarav', 'title': 'This week: the world around us', 'body': 'Our fictional classroom is exploring familiar colors, textures and everyday objects through child-led play.', 'category': 'Classroom update', 'created_at': now()}
     await db.announcements.update_one({'org_id': org_id, 'id': notice['id']}, {'$setOnInsert': notice}, upsert=True)
+
+
+async def seed_production(org_id):
+    """Idempotently ensure the live organization + a single owner admin exist."""
+    await db.settings.update_one({'org_id': org_id}, {'$setOnInsert': {'org_id': org_id, **SETTINGS}}, upsert=True)
+    email = os.environ.get('ADMIN_EMAIL', '').strip().lower()
+    password = os.environ.get('ADMIN_PASSWORD', '')
+    if not email or not password:
+        return
+    existing = await db.users.find_one({'org_id': org_id, 'email': email})
+    if not existing:
+        await db.users.insert_one({
+            'id': uid(), 'org_id': org_id, 'email': email, 'display_name': 'Center administrator',
+            'role': 'admin', 'roles': ['admin'], 'active': True, 'security_version': 1,
+            'password_hash': bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        })
+    elif not bcrypt.checkpw(password.encode(), existing['password_hash'].encode()):
+        await db.users.update_one({'org_id': org_id, 'email': email},
+                                  {'$set': {'password_hash': bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()}})

@@ -8,7 +8,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Header, HTTPException, Response
 from pydantic import Field, field_validator, EmailStr
 from pymongo.errors import DuplicateKeyError
-from config import db, Input, Payload, uid, now
+from config import db, Input, Payload, uid, now, APP_MODE
 from security import sandbox, rate_limit, digest
 from seed import SETTINGS
 from storage import get_object, APP_NAME
@@ -53,7 +53,9 @@ class EnquiryInput(Input):
 @router.get('/public/settings', response_model=Payload)
 async def settings(space=Depends(sandbox)):
     record = await db.settings.find_one({'org_id': space['org_id']}, {'_id': 0, 'org_id': 0, **{f: 0 for f in NOTIFY_FIELDS}})
-    return record or SETTINGS
+    data = dict(record) if record else dict(SETTINGS)
+    data['demo'] = APP_MODE == 'demo'
+    return data
 
 
 @router.get('/public/media/{path:path}')

@@ -40,7 +40,7 @@ export default function BookingModal(){
           <div className="form-row"><div className="field"><label>Area of interest</label><select data-testid="booking-service" value={form.service} onChange={e=>set('service',e.target.value)}>{SERVICES.map(s=><option key={s}>{s}</option>)}</select></div><div className="field"><label>Best time to call</label><select data-testid="booking-time" value={form.contact_time} onChange={e=>set('contact_time',e.target.value)}>{['Any time','Morning','Afternoon','Evening'].map(s=><option key={s}>{s}</option>)}</select></div></div>
           <label className="checkbox-label" data-testid="booking-consent-label"><input type="checkbox" data-testid="booking-consent" checked={form.consent} onChange={e=>set('consent',e.target.checked)}/> I agree to be contacted about this request. I understand not to share medical history here.</label>
           <button className="button primary full-width" disabled={busy||!form.consent} data-testid="booking-submit">{busy?'Sending…':'Send request'} <ArrowUpRight size={17}/></button>
-          <span className="booking-note"><ShieldCheck size={13}/> A request only · a fictional demo workspace · no payment is taken</span>
+          <span className="booking-note"><ShieldCheck size={13}/> A request only · our team will confirm details · no payment is taken</span>
         </form>
       </>}
     </DialogContent>

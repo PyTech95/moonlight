@@ -1,25 +1,16 @@
 import { useState } from 'react';
-import { Navigate, Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, KeyRound, LockKeyhole, ShieldCheck, UserRound, Users, Sparkles, Heart } from 'lucide-react';
+import { Navigate, Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, KeyRound, ShieldCheck, Heart, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth, useOrganization } from '../lib/context';
 import { errorText } from '../lib/api';
 import { LOGO } from '../lib/content';
 import '../styles/editor.css';
 
-const DEMO_PASSWORD = 'Moonlight@2026';
-const personas = [
-  ['parent', 'Parent / guardian', UserRound, 'See your child’s care plan, home practice and updates.', 'parent@moonlight.demo'],
-  ['staff', 'Therapist / staff', Users, 'Manage assigned children, sessions and family guidance.', 'staff@moonlight.demo'],
-  ['admin', 'Center head / admin', ShieldCheck, 'Oversee access, enquiries, operations and the website.', 'admin@moonlight.demo'],
-];
-
 export default function Login() {
-  const { user, login, accept, verifyMfa } = useAuth();
+  const { user, login, verifyMfa } = useAuth();
   const { organization } = useOrganization();
-  const [params] = useSearchParams();
   const navigate = useNavigate();
-  const [selected, setSelected] = useState(params.get('role') || 'admin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState('');
@@ -38,18 +29,12 @@ export default function Login() {
       if (next.mfa_required) setChallenge(next.challenge_token); else go(next);
     } catch (error) { toast.error(errorText(error)); } finally { setBusy(''); }
   };
-  const enterDemo = async role => {
-    setBusy('demo-' + role);
-    try { const next = await accept(role); go(next); }
-    catch (error) { toast.error(errorText(error)); } finally { setBusy(''); }
-  };
   const confirm = async event => {
     event.preventDefault();
     setBusy('mfa');
     try { const next = await verifyMfa(challenge, code); navigate(next.mfa_setup_required ? '/security-setup' : `/portal/${next.role}/${next.role === 'admin' ? 'overview' : 'today'}`); }
     catch (error) { toast.error(errorText(error)); } finally { setBusy(''); }
   };
-  const fill = role => { setSelected(role); setEmail(`${role}@moonlight.demo`); setPassword(DEMO_PASSWORD); };
 
   return (
     <main className="auth-shell">
@@ -65,10 +50,10 @@ export default function Login() {
           <div className="auth-trust">
             <span><ShieldCheck size={18} /> Encrypted sessions and role-based access</span>
             <span><Heart size={18} /> Built around every child and family</span>
-            <span><Sparkles size={18} /> Editable website, updates and home practice</span>
+            <span><Sparkles size={18} /> Care plans, updates and home practice in one place</span>
           </div>
         </div>
-        <div className="auth-aside-foot">Synthetic demonstration · Do not upload real child information.</div>
+        <div className="auth-aside-foot">Moonlight Neurocare · Sector 37C, Gurugram</div>
       </aside>
 
       <section className="auth-main">
@@ -91,7 +76,7 @@ export default function Login() {
           ) : (
             <>
               <h1 data-testid="login-title">Welcome back.</h1>
-              <p className="auth-sub">Sign in to your Moonlight portal, or open an instant role demo below.</p>
+              <p className="auth-sub">Sign in to your Moonlight Neurocare portal.</p>
 
               <form className="auth-form" onSubmit={signIn} data-testid="production-login-form">
                 <div className="auth-field">
@@ -108,27 +93,7 @@ export default function Login() {
                 </div>
               </form>
 
-              <div className="demo-cred" data-testid="demo-credentials">
-                <LockKeyhole size={13} style={{ verticalAlign: '-2px', marginRight: 6 }} />
-                Demo password for every role: <code>{DEMO_PASSWORD}</code>. Tap a role below to auto-fill, then Sign in — or open it instantly.
-              </div>
-
-              <div className="auth-divider">Instant role demo</div>
-              <div className="demo-accounts">
-                {personas.map(([role, label, Icon, description]) => (
-                  <div key={role} className={selected === role ? 'demo-account selected' : 'demo-account'} data-testid={`demo-role-${role}`} onClick={() => fill(role)}>
-                    <span className="da-icon"><Icon size={20} /></span>
-                    <span className="da-text"><strong>{label}</strong><small>{description}</small></span>
-                    <button type="button" className="da-fill" data-testid={`enter-demo-${role}`} disabled={busy === 'demo-' + role}
-                      onClick={ev => { ev.stopPropagation(); enterDemo(role); }}>{busy === 'demo-' + role ? 'Opening…' : 'Open'}</button>
-                  </div>
-                ))}
-              </div>
-              <button type="button" className="auth-btn full" style={{ marginTop: 16 }} data-testid="enter-demo" disabled={busy.startsWith('demo')} onClick={() => enterDemo(selected)}>
-                {busy.startsWith('demo') ? 'Opening demo…' : `Open ${personas.find(p => p[0] === selected)?.[1] || 'demo'}`} <ArrowRight size={16} />
-              </button>
-
-              <p className="auth-privacy"><ShieldCheck size={15} /> Access is logged. Use only your own invited account outside this demonstration.</p>
+              <p className="auth-privacy"><ShieldCheck size={15} /> Access is logged. Please sign in only with your own account.</p>
             </>
           )}
         </div>
