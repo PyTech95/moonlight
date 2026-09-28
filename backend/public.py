@@ -226,7 +226,7 @@ async def enquiry(data: EnquiryInput, space=Depends(sandbox), idempotency_key: s
               'fingerprint': fingerprint, 'reference': 'MN-' + record_id[:8].upper(), 'stage': 'New', 'version': 1,
               'created_at': now(), 'consent_record': {'version': 'contact-v1', 'scope': 'Assessment enquiry contact only', 'signed_at': now(), 'signer': data.guardian_name},
               'task': {'id': uid(), 'title': 'Review assessment enquiry', 'status': 'Open'},
-              'notification': {'id': uid(), 'channel': data.contact_preference, 'status': 'Not Configured', 'retryable': True, 'attempts': 0}, 'synthetic_environment': True}
+              'notification': {'id': uid(), 'channel': data.contact_preference, 'status': 'Queued', 'retryable': True, 'attempts': 0}, 'synthetic_environment': True}
     try:
         await db.enquiries.insert_one(record.copy())
     except DuplicateKeyError:

@@ -1,0 +1,32 @@
+{
+  "summary": "Backend-only verification of public assessment enquiry endpoint (POST /api/enquiries) with Emergent-managed Resend notification, idempotency, validation, and admin-list regression. Wrote /app/backend/tests/test_enquiries.py (7 tests). All 7 passed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_enquiries.py",
+    "/app/test_reports/pytest/enquiries_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "public.py:214 enforces Idempotency-Key >=16 chars only after Pydantic validation; ordering is fine but note FastAPI's Header(max_length=80) already restricts upper bound — consistent lower bound could be enforced in Header via min_length for uniform 422 shape.",
+    "public.py:229 notification.status starts as 'Not Configured' — for the always-on center email this is misleading before the background task flips it to 'Sent'; consider initial 'Queued'.",
+    "resend_mailer.py: EMAIL_BASE_URL is hardcoded (documented as intentional). Good. `_assert_safe_email` correctly blocks form/input tags in HTML."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_enquiries.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "not tested"},
+  "test_credentials": "admin@moonlight.demo / Moonlight@2026",
+  "seed_data_creation": "None persisted beyond TEST_-prefixed enquiries (per-sandbox scoped, isolated).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Test env requires REACT_APP_BACKEND_URL to be exported when invoking pytest since it's read at import time in backend/tests/*. Use: `REACT_APP_BACKEND_URL=$(grep REACT_APP_BACKEND_URL frontend/.env | cut -d= -f2) python -m pytest backend/tests/test_enquiries.py`. Enquiries are per-browser-sandbox scoped — the same requests.Session (holds mnc_demo cookie) must POST /enquiries and then login as admin to view /admin/enquiries. notification.status is dispatched by asyncio.create_task in the background — poll up to ~10s.",
+  "rca of the issue": "N/A — no bugs found. All 7 backend tests pass: 201+MN- reference, notification.status='Sent' visible to admin in same sandbox, idempotent replay returns duplicate=true with same reference, and 422 on consent=false / email-preference-without-email / invalid service / short idempotency-key."
+}

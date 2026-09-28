@@ -152,3 +152,10 @@ Platform injects MONGO_URL/DB_NAME/REACT_APP_BACKEND_URL only. You MUST also set
 - DATA_ENCRYPTION_KEY = 6EHCFciTWzhfs4aoNTL9WhqRnQ1yiEDTNfy7TkSb578=  (reuse this exact key or previously-encrypted secrets won't decrypt)
 - EMERGENT_LLM_KEY = the Emergent universal key
 Without correct WEB_ORIGIN/PREVIEW_PROXY_ORIGIN, POST /api/auth/* and /api/enquiries return 403.
+
+## Login fix + redesign, live editor, enquiry email (2026-06)
+- AUTH: demo accounts now have working email+password (admin/staff/parent @moonlight.demo, pw Moonlight@2026). seed.py sets known bcrypt hash + friendly emails; auth.py login auto-seeds the sandbox in demo mode so fresh browsers can sign in. One-click persona demo retained. Login page fully redesigned (two-column brand panel + card, role-card auto-fill). Testing iteration_1: 12/12 backend, 100% frontend.
+- LIVE EDITOR: admin Overview -> "Edit website with the live editor" (admin-edit-website) opens homepage at /?edit=1; floating bar (Editable.jsx/LiveEditorBar) lets admin click any text (data-ml-key) to edit inline; saves via PATCH /api/admin/content into settings.content (org-scoped), reflected publicly via /public/settings. Preference persisted in localStorage (reopens next visit). Admin-only gated. Content keys wired: hero title lines/desc, all SectionHeading eyebrow/title/description, care principles, partnership, final CTA. Images editable via "Manage images" -> Site images page.
+- ENQUIRY EMAIL: every POST /api/enquiries now emails the center inbox ENQUIRY_NOTIFY_EMAIL=moonlightneurocare@gmail.com via Emergent-managed Resend (backend/resend_mailer.py, _send_center_alert in public.py, server-side escaped template, _assert_safe_email gate). notification.status -> 'Sent'. Testing iteration_2: 7/7 backend pass. Env added: EMERGENT_EMAIL_KEY, EMAIL_FROM_NAME, ENQUIRY_NOTIFY_EMAIL.
+- RESPONSIVE: new Login has @media(max-width:920px) single-column; editor bar @media(max-width:640px); existing site already fully responsive.
+- DEPLOY NOTE: also set as deploy secrets (besides earlier list): EMERGENT_EMAIL_KEY, EMAIL_FROM_NAME, ENQUIRY_NOTIFY_EMAIL.
