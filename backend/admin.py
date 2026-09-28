@@ -1,4 +1,5 @@
 from typing import Literal
+import re
 from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File, Form
 from pydantic import Field, EmailStr
 import asyncio
@@ -66,6 +67,22 @@ async def update_settings(data: SettingsInput, p=Depends(principal)):
         raise HTTPException(409, 'Settings changed. Refresh before saving.')
     await audit(p, 'settings:update', 'organization')
     return await db.settings.find_one({'org_id': p['org_id']}, {'_id': 0, 'org_id': 0})
+
+
+class ContentInput(Input):
+    key: str = Field(min_length=1, max_length=120)
+    value: str = Field(default='', max_length=4000)
+
+
+@router.patch('/admin/content', response_model=Payload)
+async def update_content(data: ContentInput, p=Depends(principal)):
+    await authorize(p, 'settings:update')
+    key = data.key.strip()
+    if not re.fullmatch(r'[a-zA-Z0-9_-]{1,120}', key):
+        raise HTTPException(422, 'Invalid content key.')
+    await db.settings.update_one({'org_id': p['org_id']}, {'$set': {f'content.{key}': data.value.strip()}, '$inc': {'version': 1}}, upsert=True)
+    await audit(p, 'settings:update', f'content:{key}')
+    return await _return_settings(p['org_id'])
 
 
 class NotifyInput(Input):

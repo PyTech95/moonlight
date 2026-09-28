@@ -14,14 +14,18 @@ SETTINGS = {
 }
 
 
+DEMO_PASSWORD = 'Moonlight@2026'
+DEMO_PASSWORD_HASH = bcrypt.hashpw(DEMO_PASSWORD.encode(), bcrypt.gensalt()).decode()
+
+
 async def seed_demo(org_id):
     # Deterministic IDs and upserts make concurrent demo entry harmless.
     for role, name in [('parent', 'Aarav’s family'), ('staff', 'Demo care professional'), ('admin', 'Demo administrator')]:
         user_id = f'{org_id}-{role}'
         await db.users.update_one({'org_id': org_id, 'id': user_id}, {'$setOnInsert': {
-            'id': user_id, 'org_id': org_id, 'email': f'{role}@{org_id}.demo.invalid', 'display_name': name,
+            'id': user_id, 'org_id': org_id, 'email': f'{role}@moonlight.demo', 'display_name': name,
             'role': role, 'roles': [role], 'active': True,
-            'password_hash': bcrypt.hashpw(secrets.token_bytes(32), bcrypt.gensalt()).decode()
+            'password_hash': DEMO_PASSWORD_HASH
         }}, upsert=True)
     await db.settings.update_one({'org_id': org_id}, {'$setOnInsert': {'org_id': org_id, **SETTINGS}}, upsert=True)
     children = [

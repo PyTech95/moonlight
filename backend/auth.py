@@ -101,6 +101,8 @@ async def demo(data: DemoInput, request: Request, response: Response, space=Depe
 async def login(data: LoginInput, request: Request, response: Response, space=Depends(sandbox)):
     identifier = digest(f'{request.client.host if request.client else "unknown"}:{str(data.email).lower()}')
     await rate_limit('login:' + identifier, 8)
+    if APP_MODE == 'demo':
+        await seed_demo(space['org_id'])
     user = await _find_login_user(data.email, space['org_id'])
     try:
         valid = bool(user and bcrypt.checkpw(data.password.encode(), user['password_hash'].encode()))
