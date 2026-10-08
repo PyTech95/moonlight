@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer base {
+ :root {--background:45 18% 98%;--foreground:187 29% 18%;--card:0 0% 100%;--card-foreground:187 29% 18%;--popover:0 0% 100%;--popover-foreground:187 29% 18%;--primary:176 65% 25%;--primary-foreground:0 0% 100%;--secondary:120 18% 93%;--secondary-foreground:187 29% 18%;--muted:120 10% 94%;--muted-foreground:180 7% 38%;--accent:120 18% 93%;--accent-foreground:187 29% 18%;--destructive:0 65% 43%;--destructive-foreground:0 0% 100%;--border:150 10% 86%;--input:150 10% 84%;--ring:176 65% 25%;--radius:.5rem;}
+ * {@apply border-border;box-sizing:border-box;}
+ body {@apply bg-background text-foreground;margin:0;font-family:'Manrope Variable','Manrope',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+}
