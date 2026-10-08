@@ -1,0 +1,17 @@
+crons:
+  - name: virus-definitions
+    description: "Refreshes ClamAV virus definitions daily at 3:15am IST so uploads stay scannable"
+    cron: "15 3 * * *"
+    timezone: "Asia/Kolkata"
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    endpoint: "{{BASE_URL}}/api/cron/virus-definitions"
+    method: POST
+    enabled: true
+  - name: school-digest
+    description: "Prepares the weekly school digest for parents every Saturday at 9am IST (portal only)"
+    cron: "0 9 * * 6"
+    timezone: "Asia/Kolkata"
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    endpoint: "{{BASE_URL}}/api/cron/school-digest"
+    method: POST
+    enabled: true

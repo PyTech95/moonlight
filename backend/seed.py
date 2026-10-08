@@ -103,3 +103,20 @@ async def seed_school(org_id):
         'agenda': '1. What is working at school\n2. Home routines\n3. Next review date', 'status': 'scheduled', 'scheduled_for': later(6)[:16], 'minutes': '', 'actions': [],
         'review_date': '', 'author_id': f'{org_id}-staff', 'author_name': 'Demo care professional', 'author_label': 'Therapist', 'author_kind': 'therapist', 'school_id': '',
         'created_at': now(), 'attendees': [], 'version': 1, 'history': [], 'synthetic': True}}, upsert=True)
+    await seed_classes(org_id)
+
+
+async def seed_classes(org_id):
+    base = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    staff = f'{org_id}-staff'
+    classes = [('demo-class-online', 'Speech & language play group', 'Speech & Language Therapy', 'online', datetime.now(timezone.utc).replace(microsecond=0) + timedelta(minutes=10), 45, 4, '', 'Bring two favourite toys. A quiet corner helps.'),
+               ('demo-class-center', 'Sensory motor group', 'Occupational Therapy', 'center', base + timedelta(days=2, hours=2), 45, 5, 'Sector 37C, Gurugram', 'Comfortable clothes and socks.'),
+               ('demo-class-home', 'Daily-routine coaching at home', 'Occupational Therapy', 'home', base + timedelta(days=3, hours=1), 60, 1, 'Gurugram (Sectors 37C–57)', 'The therapist visits your home to practise everyday routines.')]
+    for cid, title, therapy, fmt, starts, minutes, capacity, area, notes in classes:
+        await db.therapy_classes.update_one({'org_id': org_id, 'id': cid}, {'$setOnInsert': {
+            'id': cid, 'org_id': org_id, 'title': title, 'therapy': therapy, 'format': fmt, 'starts_at': starts.isoformat(),
+            'ends_at': (starts + timedelta(minutes=minutes)).isoformat(), 'duration_minutes': minutes, 'capacity': capacity, 'area': area, 'notes': notes,
+            'therapist_id': staff, 'therapist_name': 'Demo care professional', 'status': 'scheduled', 'created_by': f'{org_id}-admin', 'created_at': now(), 'synthetic': True}}, upsert=True)
+    await db.class_bookings.update_one({'org_id': org_id, 'id': 'demo-booking-online'}, {'$setOnInsert': {
+        'id': 'demo-booking-online', 'org_id': org_id, 'class_id': 'demo-class-online', 'child_id': 'demo-aarav', 'child_name': 'Aarav', 'guardian_id': f'{org_id}-parent',
+        'guardian_name': 'Aarav’s family', 'home_address': '', 'access_notes': '', 'status': 'booked', 'created_at': now(), 'synthetic': True}}, upsert=True)

@@ -48,9 +48,9 @@ PERMISSIONS = {
     'admin': {'children:read', 'appointments:read', 'enquiries:read', 'enquiries:update', 'requests:read', 'requests:update', 'settings:read', 'settings:update', 'audit:read', 'access:revoke', 'practice_videos:read', 'practice_videos:create', 'practice_videos:update', 'practice_videos:delete', 'home_plans:read', 'home_plans:create', 'home_plans:update', 'home_plans:withdraw', 'accounts:manage', 'consents:read', 'consents:request', 'operations:manage'},
     'school': {'school:read', 'school:observe', 'school:respond', 'team:read', 'team:contribute', 'team:message'},
 }
-PERMISSIONS['parent'] |= {'sharing:manage', 'team:read', 'team:contribute', 'team:message'}
-PERMISSIONS['staff'] |= {'team:read', 'team:contribute', 'team:message', 'team:clinical'}
-PERMISSIONS['admin'] |= {'team:read', 'team:contribute', 'team:message', 'team:clinical', 'schools:manage'}
+PERMISSIONS['parent'] |= {'sharing:manage', 'team:read', 'team:contribute', 'team:message', 'classes:read', 'classes:book'}
+PERMISSIONS['staff'] |= {'team:read', 'team:contribute', 'team:message', 'team:clinical', 'classes:read', 'classes:manage'}
+PERMISSIONS['admin'] |= {'team:read', 'team:contribute', 'team:message', 'team:clinical', 'schools:manage', 'classes:read', 'classes:manage'}
 PROFILE_PERMISSIONS = {
     'guardian': PERMISSIONS['parent'],
     'clinical': PERMISSIONS['staff'] | {'consents:read'},

@@ -19,6 +19,10 @@ from documents import router as documents_router
 from sharing import router as sharing_router
 from school_portal import router as school_portal_router
 from schools_admin import router as schools_admin_router
+from attachments import router as attachments_router
+from digests import router as digests_router
+from classes import router as classes_router
+from cron import router as cron_router, startup_definitions
 from jobs import notification_worker
 from media_processing import media_worker
 from migrations import up as migrate_up
@@ -51,6 +55,10 @@ async def lifespan(app):
     for collection in ['schools', 'school_links', 'school_assignments', 'support_goals', 'goal_contributions', 'classroom_observations',
                        'school_activities', 'school_activity_responses', 'team_messages', 'team_meetings', 'team_tasks', 'shared_documents']:
         await db[collection].create_index([('org_id', 1), ('id', 1)], unique=True)
+    await db.therapy_classes.create_index([('org_id', 1), ('starts_at', 1)])
+    await db.class_bookings.create_index([('org_id', 1), ('class_id', 1), ('status', 1)])
+    await db.school_digests.create_index([('org_id', 1), ('child_id', 1), ('week_ending', 1)], unique=True)
+    await db.cron_runs.create_index('id', unique=True)
     for collection in ['school_links', 'school_assignments', 'support_goals', 'goal_contributions', 'classroom_observations', 'team_messages', 'team_meetings', 'team_tasks']:
         await db[collection].create_index([('org_id', 1), ('child_id', 1)])
     await db.notification_jobs.create_index([('org_id', 1), ('status', 1), ('meta.child_id', 1), ('meta.school_id', 1)])
@@ -60,9 +68,11 @@ async def lifespan(app):
         logging.getLogger('storage').warning('Storage init deferred: %s', exc)
     worker = asyncio.create_task(notification_worker())
     media = asyncio.create_task(media_worker())
+    definitions = asyncio.create_task(startup_definitions())
     yield
     worker.cancel()
     media.cancel()
+    definitions.cancel()
     client.close()
 
 
@@ -103,5 +113,5 @@ app.include_router(home_plans_router, prefix='/api')
 app.include_router(access_router, prefix='/api')
 app.include_router(consents_router, prefix='/api')
 app.include_router(operations_router, prefix='/api')
-for extra in [team_router, documents_router, sharing_router, school_portal_router, schools_admin_router]:
+for extra in [team_router, documents_router, sharing_router, school_portal_router, schools_admin_router, attachments_router, digests_router, classes_router, cron_router]:
     app.include_router(extra, prefix='/api')

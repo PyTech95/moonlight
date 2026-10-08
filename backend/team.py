@@ -84,6 +84,7 @@ class ActivityResponseInput(Input):
 class MessageInput(Input):
     body: str = Field(min_length=1, max_length=2000)
     recipients_confirmed: bool
+    attachment_ids: list[str] = Field(default_factory=list, max_length=3)
 
 
 class MeetingInput(Input):
@@ -419,7 +420,10 @@ async def send_message(child_id: str, data: MessageInput, p=Depends(principal)):
     if not data.recipients_confirmed:
         raise HTTPException(422, 'Review and confirm the recipients before sending.')
     recipients = await team_members(p['org_id'], ctx['child'])
-    record = {'id': uid(), 'org_id': p['org_id'], 'child_id': child_id, 'body': data.body, **author(p, ctx), 'recipients': recipients, 'read_by': [p['id']]}
+    message_id = uid()
+    from attachments import claim_attachments
+    files = await claim_attachments(p, child_id, data.attachment_ids, message_id)
+    record = {'id': message_id, 'org_id': p['org_id'], 'child_id': child_id, 'body': data.body, **author(p, ctx), 'recipients': recipients, 'attachments': files, 'read_by': [p['id']]}
     await db.team_messages.insert_one(record.copy())
     await alert_team(p, ctx, recipients, 'message', record['id'])
     await audit(p, 'team:message', record['id'])

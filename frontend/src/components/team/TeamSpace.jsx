@@ -9,6 +9,7 @@ import { MessagesPanel } from './MessagesPanel';
 import { MeetingsPanel } from './MeetingsPanel';
 import { DocumentsPanel } from './DocumentsPanel';
 import { AccessPanel, ProfilePanel, TasksPanel } from './ProfilePanel';
+import { DigestPanel } from './DigestPanel';
 
 const tabsFor = b => [
   ['plan', 'Shared support plan', b.viewer.scopes.includes('goals')],
@@ -19,10 +20,11 @@ const tabsFor = b => [
   ['meetings', 'Meetings', !!b.meetings],
   ['documents', 'Documents', !!b.documents],
   ['tasks', `Follow-ups${b.tasks ? ` (${b.tasks.filter(t => t.status === 'open').length})` : ''}`, !!b.tasks],
+  ['digest', 'Weekly school digest', b.viewer.kind !== 'school' && !!b.school_links?.length],
   ['access', 'Who has access', !!b.school_links],
 ].filter(t => t[2]);
 
-const PANELS = { plan: GoalsPanel, profile: ProfilePanel, activities: ActivitiesPanel, observations: ObservationsPanel, messages: MessagesPanel, meetings: MeetingsPanel, documents: DocumentsPanel, tasks: TasksPanel, access: AccessPanel };
+const PANELS = { plan: GoalsPanel, profile: ProfilePanel, activities: ActivitiesPanel, observations: ObservationsPanel, messages: MessagesPanel, meetings: MeetingsPanel, documents: DocumentsPanel, tasks: TasksPanel, access: AccessPanel, digest: DigestPanel };
 
 export const TeamSpace = ({ children }) => {
   const [params, setParams] = useSearchParams();

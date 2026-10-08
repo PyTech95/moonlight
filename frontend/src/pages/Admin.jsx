@@ -10,6 +10,7 @@ import { StaffPracticePage } from '../components/practice/StaffPractice';
 import { TeamSpace } from '../components/team/TeamSpace';
 import { AdminSchools } from './AdminSchools';
 import { AdminAccounts } from './AdminAccounts';
+import { ClassesPage } from '../components/classes/ClassesPage';
 
 export const STAGES=['New','Contacted','Assessment Requested','Assessment Scheduled','Assessed','Plan Proposed','Enrolled','Waitlisted','Closed'];
 export default function Admin(){
@@ -19,6 +20,7 @@ export default function Admin(){
  if(view==='settings')return <AdminSettings/>;
  if(view==='practice')return <StaffPracticePage/>;
  if(view==='schools')return <AdminSchools/>;
+ if(view==='classes')return <ClassesPage role="admin"/>;
  if(view==='accounts')return <AdminAccounts/>;
  if(view==='team')return <><PortalHeading eyebrow="CARE COORDINATION" title="Support plans" subtitle="The designated care coordinator’s view of each child’s shared plan."/><TeamSpace children={data.children}/></>;
  if(view==='media')return <AdminMedia/>;

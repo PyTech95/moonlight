@@ -10,6 +10,7 @@ import '@fontsource/manrope/600.css';
 import '@fontsource/manrope/700.css';
 import './App.css';
 import './school.css';
+import './auth.css';
 import { AuthProvider, OrganizationProvider, BookingProvider } from './lib/context';
 import { PublicLayout } from './components/PublicLayout';
 import { PortalLayout } from './components/PortalLayout';

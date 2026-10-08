@@ -18,7 +18,9 @@ logger = logging.getLogger('media-worker')
 
 
 def scan_path(path: str):
-    result = subprocess.run(['/usr/bin/clamscan', '--no-summary', path], capture_output=True, text=True, timeout=120)
+    from virus_definitions import ensure_definitions_sync
+    ensure_definitions_sync()
+    result = subprocess.run(['/usr/bin/clamscan', '--no-summary', path], capture_output=True, text=True, timeout=180)
     if result.returncode == 1:
         raise ValueError('Malware scan rejected this file.')
     if result.returncode != 0:
