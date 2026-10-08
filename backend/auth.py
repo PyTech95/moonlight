@@ -62,6 +62,9 @@ def _user_payload(user: dict, csrf: str = '') -> dict:
 
 
 async def start_session(user: dict, request: Request, response: Response, mfa_verified: bool = False):
+    previous = request.cookies.get('mnc_session')
+    if previous:
+        await db.sessions.delete_one({'token_hash': digest(previous)})
     raw = secrets.token_urlsafe(48)
     csrf = secrets.token_urlsafe(32)
     record = {

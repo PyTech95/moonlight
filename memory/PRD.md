@@ -133,3 +133,16 @@ Then redeploy. Without correct origins, POST /enquiries and /auth/* will 403.
 - Verified: /api/health, home page, demo parent login -> portal.
 - Not deployed yet: user wants to make changes first.
 - Note: /login uses `.auth-page`/`.auth-panel` classes that have no CSS in the original code, so it renders unstyled.
+
+## School Portal & Child Support Team (2026-06, iteration 9)
+- New backend modules: school_access.py (child_access authorization + scopes), team.py (shared plan, contributions, observations, guidance tasks, school activities, messages, meetings, profile), documents.py (versioned, permissioned docs + access log + school video playback), sharing.py (guardian approve/scope/withdraw links, approve assignments), school_portal.py (school workspace, coordinator invites/assignment proposals), schools_admin.py (directory, verify, coordinator invite, links, transfer, revoke, retention).
+- New role `school` (profiles school_coordinator / school_teacher). Demo personas: school, teacher (School A → Aarav), teacherb (School B → Meera).
+- Frontend: pages School, SchoolTeam, ParentSharing, AdminSchools, AdminAccounts; components/team/*; routes /accept-invite, /forgot-password, /reset-password, /security-setup (these pages existed but had no routes).
+- Fix: start_session now revokes the caller's previous session.
+- Tests: backend/tests/test_school_portal.py (4 acceptance tests pass). iteration_9: all School Portal flows pass.
+- Known environment issue: ClamAV virus DB missing in this container, so practice-video/image uploads fail with 422 "Malware scanner is unavailable". Running freshclam fixes it temporarily.
+
+## Backlog
+- P1: Login page styling (.auth-page has no CSS in the original code)
+- P1: Persist ClamAV signatures for production (freshclam at startup)
+- P2: Attachments in team messages; meeting calendar reminders by date; parent-facing school observation digest
