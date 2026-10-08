@@ -1,0 +1,42 @@
+{
+  "summary": "Iteration 10 validation of Moonlight Neurocare. Backend: 11/11 new tests in test_iteration10.py pass (cron auth/accepted/duplicate/unknown for virus-definitions and school-digest, PDF upload + non-pdf 422 + message with attachments + reuse 422 + author download, admin school-digests run + parent fetch + teacher 403, parent classes list has demo-class-online/center/home, home booking address 422/201/409, video join 503 'not connected' for booked parent, admin create-class past 422 + school 403). Regression (with REACT_APP_BACKEND_URL in env): all 4 school-portal tests pass, all 6 stage-A core-flow tests pass (including the previously-failing demo_role_switch_revokes_previous_session), all 4 home-plan tests pass. Only pre-existing failures remain in test_practice_videos.py (3 tests) - these are TEST FIXTURE bugs, not product bugs: broken 1x1 PNG payload fails PIL.verify() (admin/media 422), and tiny-webm uploads succeed as 'processing' so media GET 404s and workspace listing excludes them. ClamAV defs are now resident, so iteration-9's env note no longer applies.\n\nFrontend (preview URL): /login shows the new split .auth-page layout with the clinic photo on the left and the form + 6 persona cards on the right; no horizontal overflow at 390px. Website /therapies and /therapies/occupational-therapy both render the attend-formats section with attend-format-center/online/home cards. Parent portal: sidebar-classes shows 4 classes-filter-* chips (All formats + 3), the yellow 'In-app video calling is not connected yet' banner, class cards for center/online/home, bookings. video-join-demo-class-online triggers a 503 and the UI surfaces 'In-app video calling is not connected yet. The center needs to add its video provider key.' Team space team-tab-digest shows digest-preview. Team messages: message-attachment-input stages the uploaded PDF (chip visible with filename + remove X), the recipient summary becomes 'This message and 1 attachment will be visible to:' and the confirm checkbox label updates to '...and its attachments'. Staff portal sidebar-classes shows roster chips (class-roster-*), class-new-button opens the class-create-form. Admin portal sidebar-classes renders; admin Schools page shows digest-run-now button.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/admin/media & /api/practice-videos", "issue": "3 tests in test_practice_videos.py still fail, but the root cause is in the test fixtures, not the backend: (a) tiny_png_bytes() returns a PNG whose IDAT CRC is broken (PIL.Image.verify() raises SyntaxError 'broken PNG') so admin/media correctly returns 422; (b) tiny_webm_bytes() is not a decodable video, so uploads land in 'processing' and never become 'ready', meaning /media returns 404 and workspace.practice_videos filters them out. Both would be fixed by replacing the fixture payloads with real tiny valid files."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "MessagesPanel attachment chip", "issue": "The staged attachment chip is rendered correctly (filename + remove X) but has no data-testid like message-attachment-chip-<id>. Not blocking - behaviour is verified visually and via send roundtrip in the backend test.", "selector": "composer chip next to 'Attach PDF, JPG or PNG (max 10 MB)'", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration10.py",
+    "/app/backend/tests/test_school_portal.py",
+    "/app/backend/tests/test_stage_a_core_flows.py",
+    "/app/backend/tests/test_home_plans.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Optional: give the staged attachment chip a data-testid like message-attachment-chip-<id> so tests can target it without filename matching.",
+    "Optional: fix the fixtures in test_practice_videos.py (valid 1x1 PNG + a real webm or mock out video processing) so the 3 pre-existing failures pass. Backend code is correct."
+  ],
+  "critical_code_review_comments": [
+    "backend/classes.py is tight and readable (180 lines) with proper role/scope checks on list, book, cancel and video-join; _daily() wraps DAILY_API_KEY access so the 'not connected' 503 is clean.",
+    "backend/cron.py correctly uses hmac.compare_digest for the Bearer secret, enforces idempotency via a unique id, and backgrounds work; nice.",
+    "scan_path in media_processing.py now calls ensure_definitions_sync() on demand - good; but a RuntimeError('Malware scanner is unavailable.') still surfaces as a generic 422 in admin.py because the handler maps ValueError only. Consider mapping scanner-unavailable to 503 with an operator-facing message as flagged in iteration 9."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration10.py (new file)"
+  ],
+  "success_rate": {"backend": "100% on new tests (11/11); 23/26 incl. regressions (3 pre-existing practice_video fixture failures)", "frontend": "100% of iteration-10 flows exercised"},
+  "test_credentials": "Passwordless demo via POST /api/auth/demo {role}. See /app/memory/test_credentials.md.",
+  "seed_data_creation": "No manual seeds. Tests rely on seed_demo + seed_classes auto-run on first demo login (produces demo-class-online/center/home). One digest row generated during admin run.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run regression tests with REACT_APP_BACKEND_URL exported, otherwise test_school_portal.py and test_stage_a_core_flows.py error at import because they read the env var without a fallback. test_iteration10.py falls back to /app/frontend/.env automatically. Pre-existing practice-video failures are TEST-FIXTURE bugs (broken PNG, un-decodable webm), not product regressions. ClamAV definitions are present under /var/lib/clamav; scan_path self-heals via virus_definitions.ensure_definitions_sync. Video is intentionally NOT CONNECTED (no DAILY_API_KEY) - 503 'not connected' is expected everywhere.",
+  "rca of the issue": "N/A - no critical issues. The 3 persistent practice_video test failures are RCA'd above: PNG fixture CRC is corrupt and webm fixture is not decodable; both are test-side rather than backend-side."
+}

@@ -179,8 +179,10 @@ async def upload_media(slot: str = Form(...), name: str = Form(''), role: str = 
             raise HTTPException(422, 'Image must be under 6 MB.')
         try:
             normalized, width, height = await asyncio.to_thread(validate_and_normalize_image, data)
-        except (ValueError, RuntimeError) as exc:
+        except ValueError as exc:
             raise HTTPException(422, str(exc))
+        except RuntimeError:
+            raise HTTPException(503, 'The malware scanner is updating its definitions. Please try again in a minute.')
         result = await asyncio.to_thread(put_object, f'{APP_NAME}/{p["org_id"]}/public/{uuid.uuid4()}.webp', normalized, 'image/webp')
         path = result['path']
     if slot == 'team':

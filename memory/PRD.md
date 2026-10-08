@@ -146,3 +146,12 @@ Then redeploy. Without correct origins, POST /enquiries and /auth/* will 403.
 - P1: Login page styling (.auth-page has no CSS in the original code)
 - P1: Persist ClamAV signatures for production (freshclam at startup)
 - P2: Attachments in team messages; meeting calendar reminders by date; parent-facing school observation digest
+
+## Iteration 10 (2026-06)
+- Virus scanner definitions: refreshed at startup, daily cron (`.emergent/crons.yml` virus-definitions, 3:15am IST → POST /api/cron/virus-definitions), and on demand inside scan_path. Cron endpoints use the WEBHOOK_CRON_SECRET bearer, are idempotent, and run work in the background.
+- Login/account pages restyled (frontend/src/auth.css: split photo layout, persona grid, mobile).
+- Team message attachments: PDF/JPG/PNG up to 10 MB, magic-byte check plus ClamAV scan, max 3, recipient confirmation covers attachments, downloads limited to author/recipients/coordinator (backend/attachments.py).
+- Weekly school digest (portal only, no email): cron Saturday 9am IST → /api/cron/school-digest; parent "Weekly school digest" tab with a live preview; admin "Prepare now" (backend/digests.py).
+- Therapy classes in 3 formats (center / online / at home): website "Center · Online · At home" section on therapy pages; portal Classes for parent (book; home address required for at-home), staff (schedule + roster) and admin (schedule for any therapist) (backend/classes.py).
+- In-app video (Daily.co Prebuilt via iframe) — NOT CONNECTED: needs DAILY_API_KEY and DAILY_DOMAIN in backend/.env. Until then the join endpoint returns 503 "not connected".
+- Known: 3 tests in test_practice_videos.py fail because of invalid test fixtures (broken PNG/webm bytes), not the product.
