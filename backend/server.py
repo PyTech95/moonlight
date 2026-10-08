@@ -14,6 +14,11 @@ from home_plans import router as home_plans_router
 from access import router as access_router
 from consents import router as consents_router
 from operations import router as operations_router
+from team import router as team_router
+from documents import router as documents_router
+from sharing import router as sharing_router
+from school_portal import router as school_portal_router
+from schools_admin import router as schools_admin_router
 from jobs import notification_worker
 from media_processing import media_worker
 from migrations import up as migrate_up
@@ -43,6 +48,12 @@ async def lifespan(app):
     await db.notification_jobs.create_index([('org_id', 1), ('dedupe_key', 1)], unique=True)
     await db.backups.create_index([('org_id', 1), ('created_at', -1)])
     await db.media_jobs.create_index([('org_id', 1), ('resource_id', 1), ('created_at', -1)])
+    for collection in ['schools', 'school_links', 'school_assignments', 'support_goals', 'goal_contributions', 'classroom_observations',
+                       'school_activities', 'school_activity_responses', 'team_messages', 'team_meetings', 'team_tasks', 'shared_documents']:
+        await db[collection].create_index([('org_id', 1), ('id', 1)], unique=True)
+    for collection in ['school_links', 'school_assignments', 'support_goals', 'goal_contributions', 'classroom_observations', 'team_messages', 'team_meetings', 'team_tasks']:
+        await db[collection].create_index([('org_id', 1), ('child_id', 1)])
+    await db.notification_jobs.create_index([('org_id', 1), ('status', 1), ('meta.child_id', 1), ('meta.school_id', 1)])
     try:
         init_storage()
     except Exception as exc:
@@ -92,3 +103,5 @@ app.include_router(home_plans_router, prefix='/api')
 app.include_router(access_router, prefix='/api')
 app.include_router(consents_router, prefix='/api')
 app.include_router(operations_router, prefix='/api')
+for extra in [team_router, documents_router, sharing_router, school_portal_router, schools_admin_router]:
+    app.include_router(extra, prefix='/api')

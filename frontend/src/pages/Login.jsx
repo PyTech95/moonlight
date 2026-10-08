@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, KeyRound, LockKeyhole, ShieldCheck, Sparkles, UserRound, UsersRound } from 'lucide-react';
+import { ArrowLeft, ArrowRight, KeyRound, LockKeyhole, ShieldCheck, Sparkles, UserRound, UsersRound, School, GraduationCap } from 'lucide-react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth, useOrganization } from '../lib/context';
 import { errorText } from '../lib/api';
 import { Brand } from '../components/PublicLayout';
 
-const personas=[['parent','Parent / guardian',UserRound,'See your child’s care plan, home practice and updates.'],['staff','Therapist / staff',UsersRound,'Manage assigned children, sessions and family guidance.'],['admin','Center head / admin',ShieldCheck,'Oversee access, enquiries, operations and center settings.']];
+const personas=[['parent','Parent / guardian',UserRound,'See your child’s care plan, home practice and updates.'],['staff','Therapist / staff',UsersRound,'Manage assigned children, sessions and family guidance.'],['admin','Center head / admin',ShieldCheck,'Oversee access, enquiries, operations and center settings.'],['school','School coordinator',School,'Manage your school team and family-approved child links.'],['teacher','Teacher · Sunrise (School A)',GraduationCap,'Support assigned children with goals, observations and team messages.'],['teacherb','Teacher · Riverside (School B)',GraduationCap,'A second school — cannot see School A’s children or records.']];
 
 export default function Login(){
  const {user,accept,login,verifyMfa}=useAuth(),{organization}=useOrganization(),navigate=useNavigate(),[params]=useSearchParams();

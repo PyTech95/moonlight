@@ -19,7 +19,7 @@ router = APIRouter()
 
 
 class DemoInput(Input):
-    role: Literal['parent', 'staff', 'admin']
+    role: Literal['parent', 'staff', 'admin', 'school', 'teacher', 'teacherb']
 
 
 class LoginInput(Input):
@@ -56,7 +56,7 @@ def _valid_password(value: str):
 
 
 def _user_payload(user: dict, csrf: str = '') -> dict:
-    return {key: user.get(key) for key in ['id', 'display_name', 'email', 'role', 'roles', 'access_profile', 'mfa_enabled', 'mfa_required']} | {
+    return {key: user.get(key) for key in ['id', 'display_name', 'email', 'role', 'roles', 'access_profile', 'mfa_enabled', 'mfa_required', 'school_id', 'school_role']} | {
         'csrf': csrf, 'demo': APP_MODE == 'demo', 'mfa_setup_required': bool(user.get('mfa_required') and not user.get('mfa_enabled')),
     }
 
@@ -93,7 +93,9 @@ async def demo(data: DemoInput, request: Request, response: Response, space=Depe
         raise HTTPException(404)
     await rate_limit('demo:' + space['org_id'], 60)
     await seed_demo(space['org_id'])
-    user = await db.users.find_one({'org_id': space['org_id'], 'role': data.role, 'active': True}, {'_id': 0, 'password_hash': 0})
+    user = await db.users.find_one({'org_id': space['org_id'], 'id': f"{space['org_id']}-{data.role}", 'active': True}, {'_id': 0, 'password_hash': 0})
+    if not user:
+        raise HTTPException(403, 'This demo persona has been deactivated in your demo workspace.')
     return await start_session(user, request, response)
 
 
@@ -164,6 +166,8 @@ async def accept_invitation(data: InviteAcceptInput, request: Request, response:
         'mfa_required': invitation['access_profile'] in {'clinical', 'reception', 'finance', 'administrator'},
         'mfa_enabled': False, 'security_version': 1, 'created_at': now(), 'invitation_id': invitation['id'],
     }
+    if invitation['role'] == 'school':
+        user.update({'school_id': invitation['school_id'], 'school_role': invitation['school_role']})
     await db.users.insert_one(user.copy())
     field = 'guardian_ids' if invitation['role'] == 'parent' else 'staff_ids'
     for child_id in invitation.get('child_ids', []):

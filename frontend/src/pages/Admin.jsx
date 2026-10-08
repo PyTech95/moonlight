@@ -7,6 +7,9 @@ import { AdminSettings, AdminIntegrations, AdminAudit, AdminChecklist, AdminMedi
 import { api,errorText,dateLabel } from '../lib/api';
 import { toast } from 'sonner';
 import { StaffPracticePage } from '../components/practice/StaffPractice';
+import { TeamSpace } from '../components/team/TeamSpace';
+import { AdminSchools } from './AdminSchools';
+import { AdminAccounts } from './AdminAccounts';
 
 export const STAGES=['New','Contacted','Assessment Requested','Assessment Scheduled','Assessed','Plan Proposed','Enrolled','Waitlisted','Closed'];
 export default function Admin(){
@@ -15,6 +18,9 @@ export default function Admin(){
  const update=async(e,value)=>{setBusy(true);try{await api.patch(`/admin/enquiries/${e.id}`,{stage:value,version:e.version});await refresh();toast.success('Admissions stage updated. No appointment has been scheduled.');}catch(e){toast.error(errorText(e));}finally{setBusy(false);}};
  if(view==='settings')return <AdminSettings/>;
  if(view==='practice')return <StaffPracticePage/>;
+ if(view==='schools')return <AdminSchools/>;
+ if(view==='accounts')return <AdminAccounts/>;
+ if(view==='team')return <><PortalHeading eyebrow="CARE COORDINATION" title="Support plans" subtitle="The designated care coordinator’s view of each child’s shared plan."/><TeamSpace children={data.children}/></>;
  if(view==='media')return <AdminMedia/>;
  if(view==='integrations')return <AdminIntegrations/>;
  if(view==='audit')return <AdminAudit/>;

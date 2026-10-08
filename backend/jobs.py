@@ -12,7 +12,7 @@ from vault import decrypt_secret, encrypt_secret
 logger = logging.getLogger('notification-worker')
 
 
-async def enqueue_email(org_id: str, to_email: str, subject: str, body: str, dedupe_key: str) -> dict:
+async def enqueue_email(org_id: str, to_email: str, subject: str, body: str, dedupe_key: str, meta: dict | None = None) -> dict:
     existing = await db.notification_jobs.find_one({'org_id': org_id, 'dedupe_key': dedupe_key}, {'_id': 0})
     if existing:
         return existing
@@ -20,7 +20,7 @@ async def enqueue_email(org_id: str, to_email: str, subject: str, body: str, ded
         'id': uid(), 'org_id': org_id, 'kind': 'email', 'to_email': to_email.lower(),
         'subject': subject, 'body_encrypted': encrypt_secret(body), 'dedupe_key': dedupe_key,
         'status': 'pending', 'attempts': 0, 'next_attempt_at': datetime.now(timezone.utc),
-        'created_at': now(), 'updated_at': now(),
+        'created_at': now(), 'updated_at': now(), 'meta': meta or {},
     }
     try:
         await db.notification_jobs.insert_one(record.copy())

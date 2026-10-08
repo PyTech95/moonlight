@@ -6,11 +6,13 @@ import { SessionList } from '../components/SessionList';
 import { MorePage } from './Parent';
 import { dateLabel } from '../lib/api';
 import { StaffPracticePage } from '../components/practice/StaffPractice';
+import { TeamSpace } from '../components/team/TeamSpace';
 
 export default function Staff(){
  const {view='today'}=useParams(),{data}=useWorkspace(),[selected,setSelected]=useState(null),[filter,setFilter]=useState('Today');
  if(view==='more')return <MorePage/>;
  if(view==='practice')return <StaffPracticePage/>;
+ if(view==='team')return <><PortalHeading eyebrow="CHILD SUPPORT TEAM" title="Support plans" subtitle="Publish goals and school activities, review proposals and answer teacher guidance requests."/><TeamSpace children={data.children}/></>;
  if(view==='classes')return <><PortalHeading eyebrow="SHARED LEARNING, INDIVIDUAL NEEDS" title="Your classes" subtitle="Cohort enrollment and class plans are scheduled for Stage C."/><EmptyState icon={BookOpen} id="staff-classes-empty" title="No approved cohorts yet" description="Assigned children are available in your caseload. Proposed classes remain unpublished until approved." action={<Link to="/portal/staff/children" className="button outlined" data-testid="classes-view-children">View assigned children<ArrowUpRight size={16}/></Link>}/></>;
  if(view==='children')return <><PortalHeading eyebrow="YOUR ASSIGNED CASELOAD" title="Every child. An individual story." subtitle="Fictional profiles · Only children assigned to your demo account are shown."/><div className="children-grid">{data.children.map(c=><button className={`child-record ${selected===c.id?'selected':''}`} key={c.id} data-testid={`staff-child-${c.id}`} onClick={()=>setSelected(selected===c.id?null:c.id)} aria-expanded={selected===c.id}><span className="child-avatar">{c.initials}</span><div><h2>{c.name}</h2><p>{c.age_label}</p><span className="status sage">Assigned to you</span></div><ArrowUpRight size={18}/></button>)}</div>{selected&&(()=>{const c=data.children.find(c=>c.id===selected);return <section className="selected-child" data-testid="staff-selected-child"><h2>{c.name} · Shared context</h2><p>{c.communication}</p><h3>Participation goals</h3><ul className="check-list">{c.goals.map(g=><li key={g}><ClipboardCheck size={17}/>{g}</li>)}</ul><div className="review-panel"><ShieldCheck size={20}/><p>Internal clinical notes, signing and amendment workflows are not enabled in Stage A. These are synthetic shared observations only.</p></div></section>;})()}</>;
  const today=data.appointments.filter(a=>dateLabel(a.starts_at)===dateLabel(new Date()));

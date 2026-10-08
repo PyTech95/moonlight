@@ -85,6 +85,11 @@ async def withdraw_consent(consent_id: str, data: ConsentWithdrawInput, p=Depend
         raise HTTPException(404, 'Active consent not found.')
     changes = {'status': 'withdrawn', 'withdrawn_at': now(), 'withdrawn_by': p['id'], 'withdrawal_reason': data.reason, 'updated_at': now()}
     await db.consents.update_one({'org_id': p['org_id'], 'id': consent_id, 'status': 'granted'}, {'$set': changes, '$inc': {'version': 1}})
+    if consent['purpose'] == 'school_sharing' and consent.get('link_id'):
+        from sharing import end_link
+        link = await db.school_links.find_one({'org_id': p['org_id'], 'id': consent['link_id'], 'status': {'$in': ['active', 'pending']}}, {'_id': 0})
+        if link:
+            await end_link(p, link, 'withdrawn', data.reason)
     if consent['purpose'] == 'private_video_sharing':
         await db.practice_videos.update_many({'org_id': p['org_id'], 'child_id': consent['child_id'], 'is_deleted': {'$ne': True}}, {'$set': {'sharing_suspended': True, 'sharing_suspended_at': now()}})
     await audit(p, 'consents:withdraw', consent_id)

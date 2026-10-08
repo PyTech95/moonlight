@@ -45,14 +45,20 @@ async def principal(request: Request):
 PERMISSIONS = {
     'parent': {'children:read', 'appointments:read', 'requests:create', 'activities:read', 'activities:update', 'announcements:read', 'practice_videos:read', 'practice_videos:view', 'home_plans:read', 'home_plans:view', 'home_plans:respond', 'consents:read', 'consents:sign', 'consents:withdraw'},
     'staff': {'children:read', 'appointments:read', 'activities:read', 'announcements:read', 'attendance:update', 'practice_videos:read', 'practice_videos:create', 'practice_videos:update', 'practice_videos:delete', 'home_plans:read', 'home_plans:create', 'home_plans:update', 'home_plans:withdraw', 'consents:read'},
-    'admin': {'children:read', 'appointments:read', 'enquiries:read', 'enquiries:update', 'requests:read', 'requests:update', 'settings:read', 'settings:update', 'audit:read', 'access:revoke', 'practice_videos:read', 'practice_videos:create', 'practice_videos:update', 'practice_videos:delete', 'home_plans:read', 'home_plans:create', 'home_plans:update', 'home_plans:withdraw', 'accounts:manage', 'consents:read', 'consents:request', 'operations:manage'}
+    'admin': {'children:read', 'appointments:read', 'enquiries:read', 'enquiries:update', 'requests:read', 'requests:update', 'settings:read', 'settings:update', 'audit:read', 'access:revoke', 'practice_videos:read', 'practice_videos:create', 'practice_videos:update', 'practice_videos:delete', 'home_plans:read', 'home_plans:create', 'home_plans:update', 'home_plans:withdraw', 'accounts:manage', 'consents:read', 'consents:request', 'operations:manage'},
+    'school': {'school:read', 'school:observe', 'school:respond', 'team:read', 'team:contribute', 'team:message'},
 }
+PERMISSIONS['parent'] |= {'sharing:manage', 'team:read', 'team:contribute', 'team:message'}
+PERMISSIONS['staff'] |= {'team:read', 'team:contribute', 'team:message', 'team:clinical'}
+PERMISSIONS['admin'] |= {'team:read', 'team:contribute', 'team:message', 'team:clinical', 'schools:manage'}
 PROFILE_PERMISSIONS = {
     'guardian': PERMISSIONS['parent'],
     'clinical': PERMISSIONS['staff'] | {'consents:read'},
     'reception': {'children:read', 'appointments:read', 'enquiries:read', 'enquiries:update', 'requests:read', 'requests:update'},
     'finance': {'billing:read', 'billing:update'},
     'administrator': PERMISSIONS['admin'] | {'accounts:manage', 'consents:read', 'consents:request', 'operations:manage'},
+    'school_coordinator': PERMISSIONS['school'],
+    'school_teacher': PERMISSIONS['school'],
 }
 
 
@@ -81,6 +87,8 @@ class ScopedRepo:
     async def scope(self, collection, action):
         await authorize(self.p, action)
         query = {'org_id': self.p['org_id']}
+        if self.p['role'] == 'school':
+            query['id'] = {'$in': []}
         if collection in {'children', 'appointments', 'activities', 'announcements', 'practice_videos', 'home_plans'} and self.p['role'] != 'admin':
             field = 'guardian_ids' if self.p['role'] == 'parent' else 'staff_ids'
             children = await db.children.find({'org_id': self.p['org_id'], field: self.p['id']}, {'_id': 0, 'id': 1}).to_list(1000)
