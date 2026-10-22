@@ -26,6 +26,7 @@ import {
   School,
   KeyRound,
   MonitorPlay,
+  FileText,
 } from 'lucide-react';
 import { Brand } from './PublicLayout';
 import { useAuth } from '../lib/context';
@@ -88,8 +89,9 @@ const navigation = {
     ['accounts', 'Accounts & consent', KeyRound],
     ['schedule', 'Schedule', CalendarDays],
     ['integrations', 'Integrations', Plug],
-    ['settings', 'Settings', Settings],
+    ['content', 'Website content', FileText],
     ['media', 'Site images', Image],
+    ['settings', 'Settings', Settings],
     ['audit', 'Audit trail', ShieldCheck],
     ['checklist', 'Project checklist', ListChecks],
   ],

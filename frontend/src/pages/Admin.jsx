@@ -13,6 +13,7 @@ import {
 import { useWorkspace, PortalHeading, EmptyState } from '../components/PortalLayout';
 import { SessionList } from '../components/SessionList';
 import { AdminSettings, AdminIntegrations, AdminAudit, AdminChecklist, AdminMedia } from './AdminSettings';
+import { AdminContent } from './AdminContent';
 import { api, errorText, dateLabel } from '../lib/api';
 import { toast } from 'sonner';
 import { StaffPracticePage } from '../components/practice/StaffPractice';
@@ -67,6 +68,7 @@ export default function Admin() {
       </>
     );
   if (view === 'media') return <AdminMedia />;
+  if (view === 'content') return <AdminContent />;
   if (view === 'integrations') return <AdminIntegrations />;
   if (view === 'audit') return <AdminAudit />;
   if (view === 'checklist') return <AdminChecklist />;
