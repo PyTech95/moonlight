@@ -1,10 +1,10 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import "@fontsource-variable/fraunces";
-import "@fontsource-variable/manrope";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import "@/index.css";
-import App from "@/App";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import '@fontsource-variable/fraunces';
+import '@fontsource-variable/manrope';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import '@/index.css';
+import App from '@/App';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,7 +15,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
+const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>

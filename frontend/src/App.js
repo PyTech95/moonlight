@@ -28,7 +28,75 @@ import School from './pages/School';
 import AccountAccess from './pages/AccountAccess';
 import AccountSecurity from './pages/AccountSecurity';
 
-const RouteEffects=()=>{const {pathname}=useLocation();useEffect(()=>{window.scrollTo(0,0);if(pathname.startsWith('/locations/')||pathname==='/locations')return;document.title=`${pathname==='/'?'Child development & family support':pathname.includes('/portal')?'Your secure workspace':pathname.split('/').pop().replaceAll('-',' ')} | Moonlight Neurocare`;},[pathname]);return null;};
-function App(){return <BrowserRouter><AuthProvider><OrganizationProvider><BookingProvider><RouteEffects/><Routes><Route element={<PublicLayout/>}><Route path="/" element={<Home/>}/><Route path="/therapies" element={<Services/>}/><Route path="/therapies/:slug" element={<Services/>}/><Route path="/sports" element={<SportsPage/>}/><Route path="/sports/:slug" element={<SportsPage/>}/><Route path="/locations" element={<Locations/>}/><Route path="/locations/:area" element={<Locations/>}/><Route path="/locations/:area/:therapy" element={<Locations/>}/><Route path="/book-assessment" element={<Assessment/>}/>{['about','our-approach','for-parents','fees','center','resources','contact','faqs','what-to-expect','international/families-visiting-india','international/dubai-to-gurugram','locations/gurugram-sector-37c'].map(path=><Route key={path} path={`/${path}`} element={<Information/>}/>)}<Route path="/policies/:policy" element={<Information/>}/><Route path="/appointment" element={<Navigate to="/book-assessment" replace/>}/><Route path="*" element={<NotFound/>}/></Route><Route path="/login" element={<Login/>}/><Route path="/accept-invite" element={<AccountAccess mode="invite"/>}/><Route path="/forgot-password" element={<AccountAccess mode="forgot"/>}/><Route path="/reset-password" element={<AccountAccess mode="reset"/>}/><Route path="/security-setup" element={<AccountSecurity/>}/><Route path="/portal/:role" element={<PortalLayout/>}><Route path=":view" element={<PortalPage/>}/><Route index element={<PortalPage/>}/></Route></Routes><Toaster position="bottom-right" richColors closeButton/></BookingProvider></OrganizationProvider></AuthProvider></BrowserRouter>;}
-const PortalPage=()=>{const {pathname}=useLocation();if(pathname.startsWith('/portal/parent'))return <Parent/>;if(pathname.startsWith('/portal/staff'))return <Staff/>;if(pathname.startsWith('/portal/school'))return <School/>;return <Admin/>;};
+const RouteEffects = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    if (pathname.startsWith('/locations/') || pathname === '/locations') return;
+    document.title = `${pathname === '/' ? 'Child development & family support' : pathname.includes('/portal') ? 'Your secure workspace' : pathname.split('/').pop().replaceAll('-', ' ')} | Moonlight Neurocare`;
+  }, [pathname]);
+  return null;
+};
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <OrganizationProvider>
+          <BookingProvider>
+            <RouteEffects />
+            <Routes>
+              <Route element={<PublicLayout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/therapies" element={<Services />} />
+                <Route path="/therapies/:slug" element={<Services />} />
+                <Route path="/sports" element={<SportsPage />} />
+                <Route path="/sports/:slug" element={<SportsPage />} />
+                <Route path="/locations" element={<Locations />} />
+                <Route path="/locations/:area" element={<Locations />} />
+                <Route path="/locations/:area/:therapy" element={<Locations />} />
+                <Route path="/book-assessment" element={<Assessment />} />
+                {[
+                  'about',
+                  'our-approach',
+                  'for-parents',
+                  'fees',
+                  'center',
+                  'resources',
+                  'contact',
+                  'faqs',
+                  'what-to-expect',
+                  'international/families-visiting-india',
+                  'international/dubai-to-gurugram',
+                  'locations/gurugram-sector-37c',
+                ].map((path) => (
+                  <Route key={path} path={`/${path}`} element={<Information />} />
+                ))}
+                <Route path="/policies/:policy" element={<Information />} />
+                <Route path="/appointment" element={<Navigate to="/book-assessment" replace />} />
+                <Route path="*" element={<NotFound />} />
+              </Route>
+              <Route path="/login" element={<Login />} />
+              <Route path="/accept-invite" element={<AccountAccess mode="invite" />} />
+              <Route path="/forgot-password" element={<AccountAccess mode="forgot" />} />
+              <Route path="/reset-password" element={<AccountAccess mode="reset" />} />
+              <Route path="/security-setup" element={<AccountSecurity />} />
+              <Route path="/portal/:role" element={<PortalLayout />}>
+                <Route path=":view" element={<PortalPage />} />
+                <Route index element={<PortalPage />} />
+              </Route>
+            </Routes>
+            <Toaster position="bottom-right" richColors closeButton />
+          </BookingProvider>
+        </OrganizationProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}
+const PortalPage = () => {
+  const { pathname } = useLocation();
+  if (pathname.startsWith('/portal/parent')) return <Parent />;
+  if (pathname.startsWith('/portal/staff')) return <Staff />;
+  if (pathname.startsWith('/portal/school')) return <School />;
+  return <Admin />;
+};
 export default App;

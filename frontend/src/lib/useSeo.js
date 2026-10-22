@@ -2,12 +2,17 @@ import { useEffect } from 'react';
 
 function upsert(selector, create) {
   let el = document.head.querySelector(selector);
-  if (!el) { el = create(); document.head.appendChild(el); }
+  if (!el) {
+    el = create();
+    document.head.appendChild(el);
+  }
   return el;
 }
 function meta(attr, key, content) {
   const el = upsert(`meta[${attr}="${key}"]`, () => {
-    const m = document.createElement('meta'); m.setAttribute(attr, key); return m;
+    const m = document.createElement('meta');
+    m.setAttribute(attr, key);
+    return m;
   });
   el.setAttribute('content', content || '');
 }
@@ -25,13 +30,18 @@ export function useSeo({ title, description, canonical, robots = 'index, follow'
     if (canonical) {
       meta('property', 'og:url', canonical);
       const link = upsert('link[rel="canonical"]', () => {
-        const l = document.createElement('link'); l.setAttribute('rel', 'canonical'); return l;
+        const l = document.createElement('link');
+        l.setAttribute('rel', 'canonical');
+        return l;
       });
       link.setAttribute('href', canonical);
     }
     if (ldString) {
       const s = upsert('script#seo-jsonld', () => {
-        const el = document.createElement('script'); el.id = 'seo-jsonld'; el.type = 'application/ld+json'; return el;
+        const el = document.createElement('script');
+        el.id = 'seo-jsonld';
+        el.type = 'application/ld+json';
+        return el;
       });
       s.textContent = ldString;
     }
