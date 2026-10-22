@@ -20,8 +20,8 @@ export const publicRoutes = (content) => {
     { path: '/faqs', priority: 0.6 },
     { path: '/what-to-expect', priority: 0.5 },
     { path: '/locations', priority: 0.9 },
-    ...zones.map((z) => ({ path: `/areas/${z.slug}`, priority: 0.8 })),
-    ...pageAreas.map((a) => ({ path: `/locations/${a.slug}`, priority: a.home ? 0.8 : 0.7 })),
+    ...zones.map((z) => ({ path: `/areas/${z.slug}`, priority: 0.8, name: z.name, kind: 'zone' })),
+    ...pageAreas.map((a) => ({ path: `/locations/${a.slug}`, priority: a.home ? 0.8 : 0.7, name: a.name, kind: 'area' })),
     ...pageAreas.flatMap((a) =>
       therapies.map((t) => ({ path: `/locations/${a.slug}/${t.slug}`, priority: 0.5, index: (a.index_therapies || []).includes(t.slug) })),
     ),

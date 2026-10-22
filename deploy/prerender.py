@@ -132,8 +132,12 @@ def main():
         lines.append(f"- Email: {clinic['email']}")
     lines += ['', '## Services']
     lines += [f"- [{s['name']}]({s['url']})" for s in clinic.get('availableService', [])]
-    lines += [f'- [Home tutor & special educator at home]({public}/home-tutor-gurugram)', '', '## Areas served']
-    lines += [f"- [{r['path'].split('/')[-1].replace('-', ' ').title()}]({public}{r['path']})" for r in indexable if r['path'].startswith('/areas/')]
+    def name(r):
+        return r.get('name') or r['path'].split('/')[-1].replace('-', ' ').title()
+    lines += [f'- [Home tutor & special educator at home]({public}/home-tutor-gurugram)', '', '## Areas served (Gurugram zones)']
+    lines += [f"- [{name(r)}]({public}{r['path']})" for r in indexable if r['path'].startswith('/areas/')]
+    lines += ['', '## Neighbourhood pages']
+    lines += [f"- [{name(r)}, Gurugram]({public}{r['path']})" for r in indexable if r.get('kind') == 'area']
     lines += ['', '## Key pages', f'- [Book an assessment]({public}/book-assessment)', f'- [Contact & directions]({public}/contact)', f'- [FAQs]({public}/faqs)', f'- [All areas served]({public}/locations)']
     atomic_write(build / 'llms.txt', '\n'.join(lines) + '\n')
 
