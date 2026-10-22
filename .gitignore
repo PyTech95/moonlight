@@ -91,3 +91,9 @@ frontend/node_modules/.cache/default-development/0.pack
 credentials.json
 *.key
 .credentials
+
+# Templates are safe to commit; real secrets are not
+!.env.example
+# Local upload storage and recovery exports (contain personal data)
+backend/storage-data/
+backend/recovered_enquiries.csv

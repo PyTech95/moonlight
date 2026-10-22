@@ -2,5 +2,9 @@ User-agent: *
 Allow: /
 Disallow: /portal/
 Disallow: /login
+Disallow: /security-setup
+Disallow: /accept-invite
+Disallow: /forgot-password
+Disallow: /reset-password
 
-Sitemap: https://moonlight-deploy.preview.emergentagent.com/sitemap.xml
+Sitemap: https://moonlightneurocare.com/sitemap.xml

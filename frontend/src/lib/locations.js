@@ -133,8 +133,11 @@ export const THERAPIES = services;
 export const findArea = (slug) => SERVICE_AREAS.find((a) => a.slug === slug);
 export const findTherapy = (slug) => services.find((s) => s.slug === slug);
 
-export const SITE_ORIGIN = (process.env.REACT_APP_BACKEND_URL || '').replace(/\/$/, '');
-export const HERO_IMAGE = SITE_ORIGIN + '/moonlight-logo.svg';
+// Public site address for canonical links and schema. Set REACT_APP_SITE_URL=https://moonlightneurocare.com in production.
+export const SITE_ORIGIN = (
+  process.env.REACT_APP_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '')
+).replace(/\/$/, '');
+export const HERO_IMAGE = SITE_ORIGIN + '/icon-512.png';
 
 export const directionsUrl = (area) =>
   `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent('Moonlight Neurocare Sector 37C Gurugram')}` +

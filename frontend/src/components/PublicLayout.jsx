@@ -22,7 +22,7 @@ export const Brand = ({ footer = false }) => (
     data-testid={footer ? 'footer-brand' : 'site-brand'}
     aria-label="Moonlight Neurocare home"
   >
-    <img src={LOGO} alt="Moonlight Neurocare — original logo" width="48" height="48" />
+    <img src={LOGO} alt="Moonlight Neurocare" width="48" height="48" />
     <span className="brand-wordmark">
       moonlight<span>NEUROCARE</span>
     </span>

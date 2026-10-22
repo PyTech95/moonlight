@@ -16,7 +16,7 @@ import {
 
 export const HERO =
   'https://static.prod-images.emergentagent.com/jobs/04de8d09-65b6-48d8-b003-b4ea64a19440/images/7830d4cb245eee533294d03f50dca694afa50d25c8c8f3070a7d0f82416adeea.jpeg';
-export const LOGO = '/moonlight-logo.svg';
+export const LOGO = '/moonlight-logo.webp'; // 11 KB (the old SVG wrapped a 666 KB PNG)
 export const DIRECTOR_PHOTO =
   'https://customer-assets-gfyr7b9c.emergentagent.net/job_moonlight-prod/artifacts/5phds5ca_image.png';
 // Director qualifications — edit these with the verified credentials the center provides.
