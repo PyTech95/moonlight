@@ -10,7 +10,7 @@ from pymongo import ReturnDocument
 
 from config import APP_MODE, WEB_ORIGIN, Input, Payload, db, now, uid
 from jobs import enqueue_email
-from security import audit, cookie, digest, principal, rate_limit, sandbox
+from security import audit, client_ip, cookie, digest, principal, rate_limit, sandbox
 from seed import seed_demo
 from vault import decrypt_secret, encrypt_secret
 
@@ -71,7 +71,7 @@ async def start_session(user: dict, request: Request, response: Response, mfa_ve
         'id': uid(), 'token_hash': digest(raw), 'user_id': user['id'], 'org_id': user['org_id'], 'csrf': csrf,
         'security_version': user.get('security_version', 1), 'mfa_verified': mfa_verified or not user.get('mfa_required'),
         'created_at': now(), 'last_seen_at': now(), 'client_label': request.headers.get('user-agent', 'Unknown device')[:180],
-        'ip_hash': digest(request.client.host if request.client else 'unknown'),
+        'ip_hash': digest(client_ip(request)),
         'expires_at': datetime.now(timezone.utc) + timedelta(hours=8),
     }
     await db.sessions.insert_one(record.copy())
@@ -104,7 +104,7 @@ async def demo(data: DemoInput, request: Request, response: Response, space=Depe
 
 @router.post('/auth/login', response_model=Payload)
 async def login(data: LoginInput, request: Request, response: Response, space=Depends(sandbox)):
-    identifier = digest(f'{request.client.host if request.client else "unknown"}:{str(data.email).lower()}')
+    identifier = digest(f'{client_ip(request)}:{str(data.email).lower()}')
     await rate_limit('login:' + identifier, 8)
     user = await _find_login_user(data.email, space['org_id'])
     try:
@@ -185,7 +185,7 @@ async def accept_invitation(data: InviteAcceptInput, request: Request, response:
 
 @router.post('/auth/forgot-password', response_model=Payload)
 async def forgot_password(data: ForgotInput, request: Request, space=Depends(sandbox)):
-    await rate_limit('recovery:' + digest(f'{request.client.host if request.client else "unknown"}:{str(data.email).lower()}'), 5)
+    await rate_limit('recovery:' + digest(f'{client_ip(request)}:{str(data.email).lower()}'), 5)
     user = await _find_login_user(data.email, space['org_id'])
     raw = ''
     if user:

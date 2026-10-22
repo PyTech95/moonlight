@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, Copy, KeyRound, Laptop, LogOut, ShieldCheck, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
+import { Link, Navigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import { api, errorText } from '../lib/api';
 import { useAuth } from '../lib/context';
 import { Button } from '../components/ui/button';
 
 export default function AccountSecurity({ embedded = false }) {
-  const { user, refreshMe } = useAuth(),
+  const { user, loading, refreshMe } = useAuth(),
     [sessions, setSessions] = useState([]),
     [setup, setSetup] = useState(null),
     [code, setCode] = useState(''),
@@ -17,7 +19,9 @@ export default function AccountSecurity({ embedded = false }) {
       .get('/auth/sessions')
       .then(({ data }) => setSessions(data.items))
       .catch((error) => toast.error(errorText(error)));
-  useEffect(load, []);
+  useEffect(() => {
+    if (user) load();
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const begin = async () => {
     setBusy('setup');
     try {
@@ -61,6 +65,8 @@ export default function AccountSecurity({ embedded = false }) {
       toast.error(errorText(error));
     }
   };
+  if (!embedded && !loading && !user) return <Navigate to="/login" replace />;
+  const home = user ? `/portal/${user.role}/${user.role === 'admin' ? 'overview' : 'today'}` : '/login';
   return (
     <section className={embedded ? 'account-security embedded' : 'security-setup-page'} data-testid="account-security">
       <div className="security-heading">
@@ -90,9 +96,12 @@ export default function AccountSecurity({ embedded = false }) {
           <h2>Add Moonlight to your authenticator</h2>
           <ol>
             <li>Open your authenticator app.</li>
-            <li>Add an account using this setup key.</li>
+            <li>Scan this QR code, or add an account using the setup key below.</li>
             <li>Enter the six-digit code below.</li>
           </ol>
+          <div className="mfa-qr" data-testid="mfa-qr">
+            <QRCodeSVG value={setup.otpauth_uri} size={168} marginSize={2} title="Authenticator setup QR code" />
+          </div>
           <div className="secret-copy">
             <code data-testid="mfa-secret">{setup.secret}</code>
             <button
@@ -140,6 +149,11 @@ export default function AccountSecurity({ embedded = false }) {
             <Copy /> Copy all codes
           </Button>
         </div>
+      )}
+      {!embedded && user && !user.mfa_setup_required && (
+        <Link to={home} className="button primary security-continue" data-testid="security-continue">
+          Continue to your workspace
+        </Link>
       )}
       <div className="session-section">
         <div className="section-title-row">

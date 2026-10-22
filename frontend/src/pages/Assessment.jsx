@@ -8,6 +8,7 @@ import { useOrganization } from '../lib/context';
 
 export default function Assessment() {
   const { organization } = useOrganization();
+  const isDemo = organization?.app_mode === 'demo';
   const [form, setForm] = useState({
     guardian_name: '',
     phone: '+91 ',
@@ -51,17 +52,20 @@ export default function Assessment() {
         <span className="eyebrow">YOUR FIRST STEP IS TAKEN</span>
         <h1 data-testid="enquiry-success-title">Your request is safely with us.</h1>
         <p data-testid="enquiry-success-message">
-          Your demonstration enquiry has been saved. This is a request, not a confirmed appointment. No email or phone
-          notification has been sent.
+          {isDemo
+            ? 'Your demonstration enquiry has been saved. This is a request, not a confirmed appointment. No email or phone notification has been sent.'
+            : 'Thank you. The team will contact you at your preferred time to talk through next steps. This is a request, not a confirmed appointment.'}
         </p>
         <div className="reference" data-testid="enquiry-reference">
           Reference <strong>{result.reference}</strong>
         </div>
-        <p>The admissions team can now see this request in your isolated demo workspace.</p>
+        {isDemo && <p>The admissions team can now see this request in your isolated demo workspace.</p>}
         <div className="action-row">
-          <Link to="/login?demo=admin" className="button primary" data-testid="enquiry-view-admin">
-            View in admin demo <ArrowUpRight size={17} />
-          </Link>
+          {isDemo && (
+            <Link to="/login?demo=admin" className="button primary" data-testid="enquiry-view-admin">
+              View in admin demo <ArrowUpRight size={17} />
+            </Link>
+          )}
           <Link to="/" className="text-link" data-testid="enquiry-back-home">
             Back to home
           </Link>
@@ -98,13 +102,14 @@ export default function Assessment() {
             <Phone size={17} />
             {organization?.phone || 'See contact details'}
           </a>
-          <p className="small muted">Published contact details await center verification.</p>
         </div>
         <form className="enquiry-form" onSubmit={submit} data-testid="assessment-form">
-          <div className="demo-notice" data-testid="assessment-demo-notice">
-            <span className="status yellow">Demonstration</span> Please use fictional contact details. No real
-            appointment or notification will be created.
-          </div>
+          {isDemo && (
+            <div className="demo-notice" data-testid="assessment-demo-notice">
+              <span className="status yellow">Demonstration</span> Please use fictional contact details. No real
+              appointment or notification will be created.
+            </div>
+          )}
           <div className="field">
             <label htmlFor="guardian-name">
               Guardian’s name <span>*</span>

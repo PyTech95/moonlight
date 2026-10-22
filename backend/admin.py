@@ -2,7 +2,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File, Form
 from pydantic import Field, EmailStr
 import asyncio
-from config import db, Input, Payload, uid
+from config import db, Input, Payload, uid, IS_DEMO
 from security import principal, ScopedRepo, authorize, audit
 from storage import put_object, APP_NAME
 from emailer import send_email
@@ -60,7 +60,7 @@ class SettingsInput(Input):
 async def update_settings(data: SettingsInput, p=Depends(principal)):
     await authorize(p, 'settings:update')
     changes = data.model_dump(exclude={'version'})
-    changes['verification_status'] = 'Pending center verification'
+    changes['verification_status'] = 'Pending center verification' if IS_DEMO else 'Published'
     result = await db.settings.update_one({'org_id': p['org_id'], 'version': data.version}, {'$set': changes, '$inc': {'version': 1}})
     if not result.matched_count:
         raise HTTPException(409, 'Settings changed. Refresh before saving.')

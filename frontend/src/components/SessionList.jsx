@@ -182,8 +182,7 @@ export const SessionList = ({ sessions, compact = false }) => {
               />
             </div>
             <p className="small muted" data-testid="cancellation-policy-notice">
-              Cancellation fees and notice periods are awaiting center approval. This demo does not cancel the session
-              or charge a fee.
+              Your request goes to the team. The session stays as booked until they confirm the change.
             </p>
             {error && (
               <p className="error-message" role="alert" data-testid="appointment-request-error">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Mail,
   MessageSquare,
@@ -62,7 +63,7 @@ export const AdminSettings = () => {
       });
       setForm((f) => ({ ...f, ...data }));
       reload();
-      toast.success('Organization details saved in this demo. Verification is still required.');
+      toast.success('Contact details saved. The website now shows them.');
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -155,7 +156,7 @@ export const AdminSettings = () => {
       <PortalHeading
         eyebrow="ONE CENTER. CONSISTENT INFORMATION."
         title="Organization settings"
-        subtitle="Changes apply to your isolated demonstration, including public contact details."
+        subtitle="These contact details appear on the public website, the footer and the call and WhatsApp buttons."
       />
       {error && (
         <p role="alert" className="error-message" data-testid="settings-error">
@@ -411,66 +412,56 @@ export const AdminSettings = () => {
     </>
   );
 };
-export const AdminIntegrations = () => (
-  <>
-    <PortalHeading
-      eyebrow="CONNECTED ONLY WHEN READY"
-      title="Provider connections"
-      subtitle="No provider is connected. No payments, messages, video meetings or social feeds are being sent or processed."
-    />
-    <div className="integration-grid">
-      {[
-        [
-          CreditCard,
-          'Payments',
-          'Razorpay or an approved hosted checkout',
-          'Merchant approval, credentials, signatures, reconciliation and failure-path tests.',
-        ],
-        [
-          Mail,
-          'Email',
-          'Verified transactional email provider',
-          'Verified sender, delivery events, consent checks and a test-recipient allowlist.',
-        ],
-        [
-          MessageSquare,
-          'WhatsApp',
-          'Official WhatsApp Business provider',
-          'Approved account and templates, consent categories, opt-outs and delivery events.',
-        ],
-        [
-          Video,
-          'Video sessions',
-          'Established video provider',
-          'Entitlements, waiting room, host controls and purpose-specific consent.',
-        ],
-        [
-          Instagram,
-          'Instagram',
-          'Official authorized API or curated CMS',
-          'Verified center account, token checks and moderation. No scraping.',
-        ],
-      ].map(([Icon, title, provider, description], i) => (
-        <article className="integration-card" key={title} data-testid={`integration-${i}`}>
-          <div>
-            <Icon size={26} />
-            <span className="status yellow">Not Configured</span>
-          </div>
-          <h2>{title}</h2>
-          <strong>{provider}</strong>
-          <p>{description}</p>
-        </article>
-      ))}
-    </div>
-    <div className="review-panel">
-      <ShieldCheck size={22} />
-      <p>
-        Credentials alone do not establish that an integration works. Each provider requires approved configuration and
-        acceptance tests before activation.
-      </p>
-    </div>
-  </>
-);
+export const AdminIntegrations = () => {
+  const [s, setS] = useState(null);
+  useEffect(() => {
+    api
+      .get('/admin/settings')
+      .then(({ data }) => setS(data))
+      .catch(() => setS({}));
+  }, []);
+  const emailOn = Boolean(s?.notify_enabled && s?.smtp_password_set);
+  const whatsappOn = Boolean(s?.wa_enabled && s?.wa_token_set);
+  const cards = [
+    [Mail, 'Email alerts', 'Gmail (app password)', 'New-enquiry alerts, invitations and password-reset emails.', s && (emailOn ? 'on' : 'off'), true],
+    [MessageSquare, 'WhatsApp alerts', 'Meta WhatsApp Cloud API', 'A WhatsApp message to the center for every new enquiry.', s && (whatsappOn ? 'on' : 'off'), true],
+    [CreditCard, 'Payments', 'Razorpay (planned)', 'Online fee payments and receipts.', 'planned', false],
+    [Video, 'Online classes', 'Daily.co video (planned)', 'Secure video rooms for online therapy classes.', 'planned', false],
+    [Instagram, 'Instagram', 'Official Instagram API (planned)', 'Show the center’s latest posts on the website.', 'planned', false],
+  ];
+  const label = { on: ['sage', 'Connected'], off: ['yellow', 'Not set up'], planned: ['lavender', 'Planned'] };
+  return (
+    <>
+      <PortalHeading
+        eyebrow="OUTSIDE SERVICES"
+        title="Connections"
+        subtitle="Services the center uses for alerts, payments and online classes."
+      />
+      <div className="integration-grid">
+        {cards.map(([Icon, title, provider, description, state, configurable], i) => (
+          <article className="integration-card" key={title} data-testid={`integration-${i}`}>
+            <div>
+              <Icon size={26} />
+              {state && <span className={`status ${label[state][0]}`}>{label[state][1]}</span>}
+            </div>
+            <h2>{title}</h2>
+            <strong>{provider}</strong>
+            <p>{description}</p>
+            {configurable && (
+              <Link to="/portal/admin/settings" className="text-link" data-testid={`integration-setup-${i}`}>
+                {state === 'on' ? 'Manage in Settings' : 'Set up in Settings'}
+              </Link>
+            )}
+          </article>
+        ))}
+      </div>
+      <div className="review-panel">
+        <ShieldCheck size={22} />
+        <p>After saving credentials, use “Send test” in Settings to confirm the alert actually arrives.</p>
+      </div>
+    </>
+  );
+};
 export const AdminAudit = () => {
   const [items, setItems] = useState(null),
     [error, setError] = useState('');
@@ -600,7 +591,7 @@ export const AdminMedia = () => {
       const { data } = await api.post('/admin/media', fd);
       setS(data);
       reload();
-      toast.success('Saved to this demonstration workspace.');
+      toast.success('Saved. The website now shows this image.');
     } catch (e) {
       setError(errorText(e));
       toast.error(errorText(e));
@@ -643,7 +634,7 @@ export const AdminMedia = () => {
       <PortalHeading
         eyebrow="YOUR SITE, YOUR IMAGES"
         title="Site images"
-        subtitle="Upload and manage the pictures shown on your public website. Changes apply to this demonstration workspace."
+        subtitle="Upload and manage the pictures shown on your public website. Images are compressed automatically."
       />
       {error && (
         <p className="error-message" role="alert" data-testid="media-error">

@@ -245,6 +245,8 @@ export const PortalLayout = () => {
   }
 
   if (!user) return <Navigate to="/login" replace />;
+  // Staff and admin accounts must finish 2-step setup before any workspace data loads.
+  if (user.mfa_setup_required) return <Navigate to="/security-setup" replace />;
 
   if (!allowed) {
     const returnRole = roles.includes(user.role) ? user.role : roles[0];
@@ -265,8 +267,18 @@ export const PortalLayout = () => {
   const error = workspace.scope === scope ? workspace.error : '';
 
   const items = navigation[role].filter(
-    ([key]) => role !== 'school' || key !== 'staff' || user.school_role === 'coordinator',
+    ([key]) =>
+      (role !== 'school' || key !== 'staff' || user.school_role === 'coordinator') &&
+      (key !== 'checklist' || user.demo),
   );
+  const initials =
+    (user.display_name || '')
+      .replace(/[^\p{L}\s]/gu, '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0].toUpperCase())
+      .join('') || 'ME';
 
   const current = items.find(([key]) => {
     const path = `/portal/${role}/${key}`;
@@ -396,32 +408,26 @@ export const PortalLayout = () => {
                 )}
               </Link>
 
-              <div className="user-avatar" data-testid="portal-user-avatar">
-                {role === 'parent'
-                  ? 'AF'
-                  : role === 'staff'
-                    ? 'CT'
-                    : role === 'school'
-                      ? user.school_role === 'coordinator'
-                        ? 'SC'
-                        : 'TE'
-                      : 'AD'}
+              <div className="user-avatar" data-testid="portal-user-avatar" title={user.display_name}>
+                {initials}
               </div>
             </div>
           </header>
 
-          <div className="demo-banner">
-            <span data-testid="portal-demo-notice">
-              <ShieldCheck size={15} />
-              <strong>Demonstration workspace</strong>{' '}
-              <span>· Do not upload real child information. No live care, payments or external alerts.</span>
-            </span>
+          {user.demo && (
+            <div className="demo-banner">
+              <span data-testid="portal-demo-notice">
+                <ShieldCheck size={15} />
+                <strong>Demonstration workspace</strong>{' '}
+                <span>· Do not upload real child information. No live care, payments or external alerts.</span>
+              </span>
 
-            <Link to="/login" data-testid="change-demo-persona">
-              Change demo persona
-              <ArrowUpRight size={14} />
-            </Link>
-          </div>
+              <Link to="/login" data-testid="change-demo-persona">
+                Change demo persona
+                <ArrowUpRight size={14} />
+              </Link>
+            </div>
+          )}
 
           <main className="portal-content" id="main-content">
             {busy ? (

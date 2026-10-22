@@ -9,6 +9,13 @@ def digest(token):
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+def client_ip(request: Request) -> str:
+    """Best-effort client IP behind a reverse proxy (Nginx/Emergent). Used only for rate limiting and hashing."""
+    real = request.headers.get('x-real-ip', '').strip()
+    forwarded = request.headers.get('x-forwarded-for', '').split(',')[0].strip()
+    return real or forwarded or (request.client.host if request.client else 'unknown')
+
+
 def cookie(response, name, value, age):
     response.set_cookie(name, value, max_age=age, httponly=True, secure=True, samesite='lax', path='/')
 

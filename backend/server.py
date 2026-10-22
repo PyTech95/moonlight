@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import logging
-from config import db, client, ALLOWED_ORIGINS
+from config import db, client, ALLOWED_ORIGINS, APP_MODE
 from storage import init_storage
 from public import router as public_router
 from auth import router as auth_router
@@ -76,7 +76,7 @@ async def lifespan(app):
     client.close()
 
 
-app = FastAPI(title='Moonlight Neurocare · Stage A', lifespan=lifespan)
+app = FastAPI(title='Moonlight Neurocare', lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_credentials=True,
                    allow_methods=['GET', 'POST', 'PATCH', 'DELETE'], allow_headers=['Content-Type', 'X-CSRF-Token', 'Idempotency-Key'])
 
@@ -101,7 +101,7 @@ async def privacy_headers(request: Request, call_next):
 @app.get('/api/health')
 async def health():
     await db.command('ping')
-    return {'status': 'ok', 'mode': 'demo', 'stage': 'A'}
+    return {'status': 'ok', 'mode': APP_MODE}
 
 
 app.include_router(public_router, prefix='/api')

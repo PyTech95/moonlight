@@ -471,7 +471,6 @@ export const TeamSection = () => {
                   <span className="team-member-role">{m.role}</span>
                   <p className="team-bio">{m.bio}</p>
                   <span className="team-focus">{m.focus}</span>
-                  <span className="status sage">Profile pending verification</span>
                 </motion.div>
               ))}
         </div>

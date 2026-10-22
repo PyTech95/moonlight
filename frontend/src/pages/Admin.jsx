@@ -76,7 +76,7 @@ export default function Admin() {
         <PortalHeading
           eyebrow="THE CENTER’S SHARED AGENDA"
           title="A clear view of the week."
-          subtitle="Fictional appointments · Scheduling and conflict-safe reservations are Stage B."
+          subtitle="Upcoming sessions and change requests from families."
         />
         <SessionList sessions={data.appointments} />
         <section className="portal-section">
@@ -121,15 +121,12 @@ export default function Admin() {
               <span className="child-avatar">{c.initials}</span>
               <div>
                 <h2>{c.name}</h2>
-                <p>{c.age_label} · Synthetic profile</p>
+                <p>{c.age_label}</p>
               </div>
             </article>
           ))}
         </div>
-        <p className="muted small">
-          Guardian invitations, pickup access and sensitive intake will be introduced with Stage B/C authorization
-          workflows.
-        </p>
+        <p className="muted small">Invite parents and therapists for a child from Accounts &amp; consent.</p>
       </>
     );
   if (view === 'enquiries') {
@@ -248,7 +245,7 @@ export default function Admin() {
       />
       <div className="stat-grid">
         {[
-          [CalendarDays, 'Today’s sessions', today.length, 'Fictional scheduled sessions', 'schedule'],
+          [CalendarDays, 'Today’s sessions', today.length, 'Scheduled at the center', 'schedule'],
           [
             ClipboardList,
             'Open enquiries',
@@ -293,7 +290,7 @@ export default function Admin() {
             <div>
               <strong>Enquiry follow-ups</strong>
               <p>
-                {data.enquiries.length} request{data.enquiries.length === 1 ? '' : 's'} in your demo workspace
+                {data.enquiries.length} request{data.enquiries.length === 1 ? '' : 's'} to follow up
               </p>
             </div>
             <ChevronRight size={16} />
@@ -302,7 +299,7 @@ export default function Admin() {
             <span className="attention-dot yellow" />
             <div>
               <strong>Center information</strong>
-              <p>Contact details need verification</p>
+              <p>Keep the public phone, email and address up to date</p>
             </div>
             <ChevronRight size={16} />
           </Link>
@@ -310,7 +307,7 @@ export default function Admin() {
             <span className="attention-dot lavender" />
             <div>
               <strong>Provider connections</strong>
-              <p>5 services are not configured</p>
+              <p>Email and WhatsApp alerts, payments, video</p>
             </div>
             <ChevronRight size={16} />
           </Link>

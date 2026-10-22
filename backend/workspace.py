@@ -2,7 +2,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import Field
 from pymongo.errors import DuplicateKeyError
-from config import db, Input, Payload, uid, now
+from config import db, Input, Payload, uid, now, IS_DEMO
 from security import principal, ScopedRepo, authorize, audit
 from home_plans import serialize_plan
 
@@ -37,7 +37,7 @@ async def workspace(role: Literal['parent', 'staff', 'admin'], p=Depends(princip
     data = {'children': children, 'appointments': sorted(appointments, key=lambda x: x['starts_at']), 'activities': [], 'announcements': [], 'requests': [],
             'practice_videos': practice_videos, 'home_plans': home_plans, 'video_unread': video_unread, 'plan_unread': plan_unread,
             'practice_unread': video_unread + plan_unread,
-            'demo': True}
+            'demo': IS_DEMO}
     if role != 'admin':
         data['activities'] = await repo.list('activities', 'activities:read')
         data['announcements'] = await repo.list('announcements', 'announcements:read')

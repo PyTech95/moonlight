@@ -17,42 +17,82 @@ import { useAuth, useOrganization } from '../lib/context';
 import { errorText } from '../lib/api';
 import { Brand } from '../components/PublicLayout';
 
-const personas = [
-  ['parent', 'Parent / guardian', UserRound, 'See your child’s care plan, home practice and updates.'],
-  ['staff', 'Therapist / staff', UsersRound, 'Manage assigned children, sessions and family guidance.'],
-  ['admin', 'Center head / admin', ShieldCheck, 'Oversee access, enquiries, operations and center settings.'],
-  ['school', 'School coordinator', School, 'Manage your school team and family-approved child links.'],
-  [
-    'teacher',
-    'Teacher · Sunrise (School A)',
-    GraduationCap,
-    'Support assigned children with goals, observations and team messages.',
-  ],
-  [
-    'teacherb',
-    'Teacher · Riverside (School B)',
-    GraduationCap,
-    'A second school — cannot see School A’s children or records.',
-  ],
+// One sign-in for everyone (website and mobile app). The account decides which workspace opens;
+// the cards only explain who signs in here and what to expect.
+const ROLES = [
+  {
+    key: 'parent',
+    label: 'Parent / guardian',
+    Icon: UserRound,
+    blurb: 'Your child’s plan, home practice videos and updates.',
+    hint: 'Use the email address the center invited you with. First time? Open the invitation link in your email to set your password.',
+  },
+  {
+    key: 'staff',
+    label: 'Therapist / staff',
+    Icon: UsersRound,
+    blurb: 'Your caseload, sessions and family guidance.',
+    hint: 'Use your work email. After your password you’ll confirm with your authenticator app.',
+  },
+  {
+    key: 'school',
+    label: 'School',
+    Icon: School,
+    blurb: 'Coordinators and teachers supporting a child.',
+    hint: 'Use the email your school coordinator or the center invited. You’ll only see children whose families approved it.',
+  },
+  {
+    key: 'admin',
+    label: 'Center admin',
+    Icon: ShieldCheck,
+    blurb: 'Enquiries, accounts, website and center settings.',
+    hint: 'Admin accounts always confirm with an authenticator app after the password.',
+  },
 ];
+const ROLE_LABEL = { parent: 'Parent', staff: 'Therapist / staff', school: 'School', admin: 'Center admin' };
+
+// Demo personas exist only when the backend runs in demo mode (staging), never on the live site.
+const DEMO_PERSONAS = [
+  ['parent', 'Parent / guardian', UserRound],
+  ['staff', 'Therapist / staff', UsersRound],
+  ['admin', 'Center head / admin', ShieldCheck],
+  ['school', 'School coordinator', School],
+  ['teacher', 'Teacher · School A', GraduationCap],
+  ['teacherb', 'Teacher · School B', GraduationCap],
+];
+
+export const workspaceHome = (account) =>
+  account?.mfa_setup_required
+    ? '/security-setup'
+    : `/portal/${account.role}/${account.role === 'admin' ? 'overview' : 'today'}`;
 
 export default function Login() {
   const { user, accept, login, verifyMfa } = useAuth(),
     { organization } = useOrganization(),
     navigate = useNavigate(),
     [params] = useSearchParams();
-  const [selected, setSelected] = useState(params.get('role') || 'parent'),
+  const initialRole = ROLES.some((r) => r.key === params.get('role')) ? params.get('role') : 'parent';
+  const [role, setRole] = useState(initialRole),
+    [demoRole, setDemoRole] = useState('parent'),
     [email, setEmail] = useState(''),
     [password, setPassword] = useState(''),
     [busy, setBusy] = useState(''),
     [challenge, setChallenge] = useState(''),
     [code, setCode] = useState('');
-  if (user) return <Navigate to={`/portal/${user.role}/${user.role === 'admin' ? 'overview' : 'today'}`} replace />;
+  const showDemo = organization?.app_mode === 'demo';
+  const active = ROLES.find((r) => r.key === role);
+  if (user) return <Navigate to={workspaceHome(user)} replace />;
+
+  const arrive = (account) => {
+    if (account.role !== role && ROLE_LABEL[account.role]) {
+      toast.message(`Signed in as ${ROLE_LABEL[account.role]}.`);
+    }
+    navigate(workspaceHome(account));
+  };
   const enterDemo = async () => {
     setBusy('demo');
     try {
-      const next = await accept(selected);
-      navigate(`/portal/${next.role}/${next.role === 'admin' ? 'overview' : 'today'}`);
+      arrive(await accept(demoRole));
     } catch (error) {
       toast.error(errorText(error));
     } finally {
@@ -65,7 +105,7 @@ export default function Login() {
     try {
       const next = await login(email, password);
       if (next.mfa_required) setChallenge(next.challenge_token);
-      else navigate(`/portal/${next.role}/${next.role === 'admin' ? 'overview' : 'today'}`);
+      else arrive(next);
     } catch (error) {
       toast.error(errorText(error));
     } finally {
@@ -76,12 +116,7 @@ export default function Login() {
     event.preventDefault();
     setBusy('mfa');
     try {
-      const next = await verifyMfa(challenge, code);
-      navigate(
-        next.mfa_setup_required
-          ? '/security-setup'
-          : `/portal/${next.role}/${next.role === 'admin' ? 'overview' : 'today'}`,
-      );
+      arrive(await verifyMfa(challenge, code));
     } catch (error) {
       toast.error(errorText(error));
     } finally {
@@ -95,16 +130,19 @@ export default function Login() {
       </Link>
       <section className="auth-panel">
         <Brand />
-        <span className="eyebrow">SECURE PORTAL</span>
-        <h1 data-testid="login-title">Welcome to your shared care space.</h1>
-        <p>{organization?.name || 'Moonlight Neurocare'} keeps family and care-team access separate.</p>
+        <span className="eyebrow">SECURE LOGIN</span>
+        <h1 data-testid="login-title">Sign in to Moonlight.</h1>
+        <p>
+          One login for families, therapists, schools and the {organization?.name || 'Moonlight Neurocare'} team. Your
+          account opens the right workspace.
+        </p>
         {challenge ? (
           <form className="production-login" onSubmit={confirm} data-testid="mfa-login-form">
             <div className="auth-method-heading">
               <KeyRound />
               <div>
                 <strong>Authenticator verification</strong>
-                <span>Enter the current six-digit code or one recovery code.</span>
+                <span>Enter the current six-digit code from your authenticator app, or one recovery code.</span>
               </div>
             </div>
             <div className="field">
@@ -136,12 +174,31 @@ export default function Login() {
           </form>
         ) : (
           <>
+            <div className="role-picker" role="radiogroup" aria-label="Who is signing in?">
+              {ROLES.map(({ key, label, Icon, blurb }) => (
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={role === key}
+                  className={role === key ? 'persona-card selected' : 'persona-card'}
+                  onClick={() => setRole(key)}
+                  data-testid={`login-role-${key}`}
+                  key={key}
+                >
+                  <Icon />
+                  <span>
+                    <strong>{label}</strong>
+                    <small>{blurb}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
             <form className="production-login" onSubmit={signIn} data-testid="production-login-form">
               <div className="auth-method-heading">
                 <LockKeyhole />
                 <div>
-                  <strong>Sign in with your account</strong>
-                  <span>For invited family members and team accounts.</span>
+                  <strong>{active.label} sign in</strong>
+                  <span data-testid="login-role-hint">{active.hint}</span>
                 </div>
               </div>
               <div className="field">
@@ -177,39 +234,46 @@ export default function Login() {
                 </button>
               </div>
             </form>
-            <div className="auth-divider">
-              <span>Demonstration access</span>
-            </div>
-            <div className="persona-list">
-              {personas.map(([role, label, Icon, description]) => (
+            <p className="auth-help" data-testid="login-no-account">
+              Don’t have an account yet? Accounts are created by invitation from the center.{' '}
+              <Link to="/contact">Contact the center</Link>.
+            </p>
+            {showDemo && (
+              <>
+                <div className="auth-divider">
+                  <span>Demo access · staging only</span>
+                </div>
+                <div className="persona-list">
+                  {DEMO_PERSONAS.map(([key, label, Icon]) => (
+                    <button
+                      type="button"
+                      className={demoRole === key ? 'persona-card selected' : 'persona-card'}
+                      onClick={() => setDemoRole(key)}
+                      data-testid={`demo-role-${key}`}
+                      key={key}
+                    >
+                      <Icon />
+                      <span>
+                        <strong>{label}</strong>
+                      </span>
+                      {demoRole === key && <Sparkles />}
+                    </button>
+                  ))}
+                </div>
                 <button
-                  type="button"
-                  className={selected === role ? 'persona-card selected' : 'persona-card'}
-                  onClick={() => setSelected(role)}
-                  data-testid={`demo-role-${role}`}
-                  key={role}
+                  className="button outlined demo-entry"
+                  onClick={enterDemo}
+                  disabled={busy === 'demo'}
+                  data-testid="enter-demo"
                 >
-                  <Icon />
-                  <span>
-                    <strong>{label}</strong>
-                    <small>{description}</small>
-                  </span>
-                  {selected === role && <Sparkles />}
+                  {busy === 'demo' ? 'Opening demo…' : 'Open selected demo'} <ArrowRight />
                 </button>
-              ))}
-            </div>
-            <button
-              className="button outlined demo-entry"
-              onClick={enterDemo}
-              disabled={busy === 'demo'}
-              data-testid="enter-demo"
-            >
-              {busy === 'demo' ? 'Opening demo…' : 'Open selected demo'} <ArrowRight />
-            </button>
+              </>
+            )}
           </>
         )}
         <p className="auth-privacy">
-          <ShieldCheck /> Access is logged. Use only your own invited account outside this synthetic demonstration.
+          <ShieldCheck /> Every sign-in is logged. Never share your password or verification codes.
         </p>
       </section>
     </main>

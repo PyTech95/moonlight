@@ -5,11 +5,11 @@ import logging
 import httpx
 from datetime import datetime, timezone
 from typing import Literal
-from fastapi import APIRouter, Depends, Header, HTTPException, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from pydantic import Field, field_validator, EmailStr
 from pymongo.errors import DuplicateKeyError
-from config import db, Input, Payload, uid, now
-from security import sandbox, rate_limit, digest
+from config import db, Input, Payload, uid, now, APP_MODE, IS_DEMO
+from security import sandbox, rate_limit, digest, client_ip
 from seed import SETTINGS
 from storage import get_object, APP_NAME
 from emailer import send_email
@@ -51,7 +51,7 @@ class EnquiryInput(Input):
 @router.get('/public/settings', response_model=Payload)
 async def settings(space=Depends(sandbox)):
     record = await db.settings.find_one({'org_id': space['org_id']}, {'_id': 0, 'org_id': 0, **{f: 0 for f in NOTIFY_FIELDS}})
-    return record or SETTINGS
+    return {**(record or SETTINGS), 'app_mode': APP_MODE}
 
 
 @router.get('/public/media/{path:path}')
@@ -166,7 +166,7 @@ async def _notify_new_enquiry(org_id, record, data):
 
 
 @router.post('/enquiries', response_model=Payload, status_code=201)
-async def enquiry(data: EnquiryInput, space=Depends(sandbox), idempotency_key: str = Header(..., max_length=80)):
+async def enquiry(data: EnquiryInput, request: Request, space=Depends(sandbox), idempotency_key: str = Header(..., max_length=80)):
     if not data.consent:
         raise HTTPException(422, 'Please consent to being contacted about this request.')
     if data.contact_preference == 'Email' and not data.email:
@@ -179,14 +179,15 @@ async def enquiry(data: EnquiryInput, space=Depends(sandbox), idempotency_key: s
         if existing['fingerprint'] != fingerprint:
             raise HTTPException(409, 'This request identifier was already used. Start a new request.')
         return {'id': existing['id'], 'reference': existing['reference'], 'status': 'Request received', 'duplicate': True}
-    await rate_limit('enquiry:' + space['org_id'], 10)
+    # Per visitor, not per center: one noisy client must not block every family's enquiry.
+    await rate_limit('enquiry:' + space['org_id'] + ':' + digest(client_ip(request)), 10)
     record_id = uid()
     # Enquiry + one admissions task + outbox intent commit atomically in ONE Mongo document.
     record = {**data.model_dump(), 'id': record_id, 'org_id': space['org_id'], 'idempotency_key': idempotency_key,
               'fingerprint': fingerprint, 'reference': 'MN-' + record_id[:8].upper(), 'stage': 'New', 'version': 1,
               'created_at': now(), 'consent_record': {'version': 'contact-v1', 'scope': 'Assessment enquiry contact only', 'signed_at': now(), 'signer': data.guardian_name},
               'task': {'id': uid(), 'title': 'Review assessment enquiry', 'status': 'Open'},
-              'notification': {'id': uid(), 'channel': data.contact_preference, 'status': 'Not Configured', 'retryable': True, 'attempts': 0}, 'synthetic_environment': True}
+              'notification': {'id': uid(), 'channel': data.contact_preference, 'status': 'Not Configured', 'retryable': True, 'attempts': 0}, 'synthetic_environment': IS_DEMO}
     try:
         await db.enquiries.insert_one(record.copy())
     except DuplicateKeyError:

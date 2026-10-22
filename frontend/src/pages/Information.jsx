@@ -14,19 +14,19 @@ const pages = {
   '/about': {
     eyebrow: 'MOONLIGHT NEUROCARE',
     title: 'Every child brings their own light.',
-    intro: 'A child-centered starting point for communication, everyday skills and learning support in Gurugram.',
+    intro: 'A child-centred therapy and family-support center in Sector 37C, Gurugram.',
     sections: [
       [
-        'A place for your family’s questions',
-        'The center’s published services include speech, occupational, ABA, sensory integration, yoga, neurodevelopmental, remedial, and music & play therapies. Individual suitability should be discussed with an appropriately qualified professional.',
+        'What we offer',
+        'Speech, occupational, ABA, sensory integration, yoga, neurodevelopmental, remedial, and music & play therapies, alongside indoor sports built around every child. The right mix for your child is decided together after an individual assessment.',
       ],
       [
-        'A story built on verified facts',
-        'We are reviewing the center’s history, professional credentials, accessibility details and approved photographs. We will not present unverified staff identities, credentials or outcome claims.',
+        'How we work',
+        'Sessions move at your child’s pace, with play, connection and plenty of room to pause. Families are kept closely involved, with clear goals and guidance you can use at home.',
       ],
       [
         'Your priorities matter',
-        'Support should recognize your child’s strengths, respect their choices, and make room for the everyday experiences that matter to your family.',
+        'Support should recognise your child’s strengths, respect their choices, and make room for the everyday experiences that matter to your family.',
       ],
     ],
   },
@@ -45,7 +45,7 @@ const pages = {
       ],
       [
         'Review, not promise',
-        'Meaningful progress is individual. We do not promise cures, guaranteed speech or a fixed recovery timeline.',
+        'Meaningful progress is individual. We do not promise cures, guaranteed speech or a fixed recovery timeline. Goals are reviewed with you regularly.',
       ],
     ],
   },
@@ -56,55 +56,55 @@ const pages = {
     sections: [
       [
         'One place for your day',
-        'The parent demonstration includes your child’s upcoming sessions, a shared summary, a home activity and classroom news.',
+        'The parent portal shows your child’s upcoming sessions, shared goals, home-practice videos from the therapist and updates from the team.',
       ],
       [
         'Share what you notice',
-        'You can record feedback on a demonstration home activity and ask for an adaptation. No streaks, scores or comparison with other children.',
+        'Tell the team how a home activity went and ask for an adaptation when something isn’t working. No streaks, scores or comparison with other children.',
       ],
       [
         'Make changes together',
-        'A reschedule or absence request remains pending. Submitting a request does not alter a confirmed appointment.',
+        'Request a reschedule or tell us about an absence from the portal. The team confirms every change with you.',
       ],
     ],
   },
   '/fees': {
     eyebrow: 'CLEAR INFORMATION BEFORE YOU DECIDE',
     title: 'Let’s talk about the practical details.',
-    intro: 'Fees and payment policies must be confirmed by the center before you commit.',
+    intro: 'You receive a clear, written fee breakdown before you commit to anything.',
     sections: [
       [
-        'Ask for a written breakdown',
-        'Request the assessment fee, applicable session fees, package conditions and any tax treatment before accepting a plan. No pricing has been approved for this preview.',
+        'Assessment first',
+        'Fees depend on the assessment and the plan agreed with your family. Ask the team for the assessment fee, session fees and any package options.',
       ],
       [
         'Cancellations and refunds',
-        'Ask about notice periods, cancellation charges, package expiry and refund conditions. These rules require center approval and are not inferred here.',
+        'Notice periods, cancellation charges, package validity and refund conditions are shared in writing before your first session.',
       ],
       [
-        'Payments in this preview',
-        'No payment provider is connected. This preview cannot charge a card, collect a payment or issue a verified payment receipt.',
+        'Paying the center',
+        'The team will explain the payment methods available when your plan is agreed.',
       ],
     ],
   },
   '/center': {
     eyebrow: 'PLAN A COMFORTABLE VISIT',
     title: 'A familiar first step in Gurugram.',
-    intro: 'The center’s published address is in Sector 37C, opposite Alpine Convent School.',
+    intro: 'We are on the first floor, opposite Alpine Convent School, Sector 37C, Gurugram.',
     sections: [
       [
         'Access needs',
-        'Please contact the center about step-free access, lifts, toilets, sensory needs, parking and any other accommodation before visiting. These facilities have not yet been verified.',
+        'Tell us before your visit about step-free access, sensory needs, parking or anything else that would make arrival easier, and we’ll plan around it.',
       ],
       [
-        'Photos and tours',
-        'Only approved, consented photographs of the actual center will appear here. The homepage image is an explicitly labeled staging illustration.',
+        'A first look',
+        'Bright therapy rooms, a sensory movement gym and quiet spaces. See photos of the center on the About page.',
       ],
     ],
   },
   '/resources': {
     eyebrow: 'KNOWLEDGE WITH CARE',
-    title: 'Helpful information. Thoughtfully reviewed.',
+    title: 'Helpful information for families.',
     intro: 'Practical next steps for families, without scores or labels.',
     sections: [
       [
@@ -112,38 +112,38 @@ const pages = {
         'Think about what matters to your child, their preferred communication, and the everyday activities you would like to discuss. You do not need to share detailed medical history in a public enquiry.',
       ],
       [
-        'A note on clinical resources',
-        'Clinical guides, milestone explanations, downloadable resources and workshop recordings will remain unpublished until qualified review and any required media consent are complete.',
+        'Guides from our team',
+        'Practical guides for families are being added here. Until then, the team is happy to answer questions by phone or WhatsApp.',
       ],
     ],
   },
   '/international/families-visiting-india': {
     eyebrow: 'FAMILIES VISITING INDIA',
     title: 'Planning from afar. Staying connected.',
-    intro: 'Administrative planning for a visit to the Indian center in Sector 37C, Gurugram.',
+    intro: 'Planning a visit to our center in Sector 37C, Gurugram from outside India.',
     sections: [
       [
         'Start with an enquiry',
-        'Discuss your intended dates, contact time zone, accessibility needs and the information the team needs before assessing suitability. No appointment availability or travel time is promised.',
+        'Share your intended dates, your time zone and any accessibility needs. The team will tell you what is possible and what to prepare before you travel.',
       ],
       [
         'Share documents securely',
-        'Do not send medical histories through public enquiry forms. Secure document intake is a later-stage feature and is not enabled in this preview.',
+        'Please don’t send medical histories through the public enquiry form. The team will tell you how to share reports securely.',
       ],
       [
-        'Clinical services across borders',
-        'Overseas clinical sessions remain disabled until professional and jurisdiction requirements are confirmed. Parent education and clinical therapy are different services.',
+        'After you return home',
+        'Ask about home-practice guidance and how to stay in touch with the team once you are back.',
       ],
     ],
   },
   '/international/dubai-to-gurugram': {
     eyebrow: 'DUBAI TO GURUGRAM',
     title: 'Planning Child Therapy in Gurugram from Dubai',
-    intro: 'This is a planning guide for visiting India, not a claim of a Dubai branch or overseas clinical service.',
+    intro: 'A planning guide for families travelling from Dubai to our Gurugram center.',
     sections: [
       [
         'Before travel',
-        'Contact the Gurugram center about suitability, availability and the lead time required before booking travel. There is no verified standard notice period.',
+        'Contact the Gurugram center about suitability and availability before booking travel, so sessions can be planned around your dates.',
       ],
       [
         'Time zones',
@@ -151,55 +151,56 @@ const pages = {
       ],
       [
         'Documents and continuity',
-        'Ask the team how documents can be shared securely and discuss continuity after returning home. Cross-border clinical sessions are not enabled.',
+        'Ask the team how documents can be shared securely and how home practice can continue after you return.',
       ],
     ],
   },
 };
+// Policy text should be reviewed by the center (and its lawyer) and kept up to date from the admin CMS.
 const policies = {
   privacy: [
-    'Privacy information',
-    'This Stage A preview is for fictional data only. Assessment enquiries record a guardian name, phone number, optional email, broad service interest, country and contact preferences. They are saved to an isolated demonstration workspace, not sent to a live care team.',
-    'Contact consent is separate from marketing, treatment, recording and public image consent. No marketing checkbox is preselected. Please do not enter health histories or upload child records.',
-    'A production privacy notice, vendor/data-flow inventory, retention schedule and legal review are required before real data is accepted. For questions or correction requests, contact the center using its published contact details, pending verification.',
+    'Privacy policy',
+    'When you send an enquiry we collect the parent or guardian’s name, phone number, optional email, the support you are interested in, your country and how you prefer to be contacted. We use this only to respond to your enquiry and to arrange an assessment.',
+    'If your family joins the center, the parent portal and app hold information the center shares with you about your child, such as goals, schedules and home-practice videos. Access is limited to your family, the care team working with your child and anyone you approve (for example, your child’s school), and every access is logged.',
+    'We do not sell personal information. We use only the cookies needed to keep you signed in and to protect forms. Enquiry alerts reach the center team by email or WhatsApp.',
+    'To see, correct or delete your information, or to withdraw consent, contact the center using the details on the contact page.',
   ],
   terms: [
     'Website terms',
-    'This is an unapproved demonstration, not a live clinical service. Information does not diagnose a child or determine an individual treatment plan.',
-    'An assessment form submits a request only. Availability, suitability, fees and policies need human confirmation.',
-    'Final website terms and applicable legal requirements await center and legal review.',
+    'Information on this website is general. It does not diagnose a child or replace an individual assessment by a qualified professional.',
+    'Sending an assessment request does not confirm an appointment. The team will contact you to discuss suitability, fees and availability.',
+    'Portal and app accounts are personal. Please keep your password and verification codes private.',
   ],
   accessibility: [
     'Accessibility',
-    'This preview is designed for keyboard navigation, visible focus, readable labels and reduced-motion preferences. Please tell the center if you need information in another format.',
-    'English is the initial language. Reviewed translations, captioned center media, formal assistive-technology checks and an accessibility statement are pending.',
-    'Contact the center to discuss physical access needs before visiting. Do not assume step-free access or particular facilities.',
+    'This website supports keyboard navigation, visible focus, readable labels and reduced-motion preferences. Please tell us if you need information in another format.',
+    'Contact the center to discuss physical access needs before visiting, and we’ll plan your arrival together.',
   ],
   'child-safeguarding': [
     'Child safeguarding',
-    'Respect for children’s dignity, autonomy, communication preferences and privacy is part of the product requirements. Publicity consent must never be a condition of receiving support.',
-    'No real child media or private therapy recordings are published in this preview. The homepage image is an AI-generated staging illustration.',
-    'The center must approve its safeguarding lead, reporting procedure, pickup verification and emergency escalation policy before live operations. If a child is in immediate danger, contact local emergency services.',
+    'Every child’s dignity, autonomy, communication preferences and privacy are respected. Agreeing to photos or publicity is never a condition of receiving support.',
+    'Photos or videos of children are shared publicly only with written parental consent. Practice videos in the portal are private to the family and the care team.',
+    'If you have a safeguarding concern, contact the center directly. If a child is in immediate danger, call 112.',
   ],
   complaints: [
-    'Complaints & contact',
-    'If you have a concern about information in this preview, please contact the center. Its published details are shown on the contact page and still require confirmation.',
-    'A named complaints contact, response time and escalation process must be approved before launch. This portal is not an emergency service.',
+    'Complaints & feedback',
+    'If something hasn’t gone right, please tell us. Contact the center by phone, WhatsApp or email and we will respond as quickly as we can.',
+    'This portal is not an emergency service. In an emergency, call 112.',
   ],
   cancellation: [
     'Appointment cancellations & refunds',
-    'Cancellation windows, fee consequences, package expiry and refund rules have not yet been approved. A parent change request does not confirm cancellation or rescheduling.',
-    'Please obtain the current written terms from the center before agreeing to or paying for services. No payments are accepted here.',
+    'Cancellation notice periods, charges, package validity and refund rules are shared with you in writing before your first session.',
+    'A change request from the parent portal is confirmed only when the team accepts it.',
   ],
   'online-classes': [
     'Online class terms',
-    'Online classes and academy programs are proposed offerings. They are not available for enrollment in this preview.',
-    'Admission, provider access, time zones, recording consent, refunds and jurisdiction restrictions need approval before activation. Recording is off by default.',
+    'Online sessions run on a secure video link shared by the center. Sessions are not recorded unless you agree in advance.',
+    'Joining details, time zone, fees and refund rules are confirmed when you book.',
   ],
   consent: [
     'Understanding consent',
-    'Treatment, school/professional sharing, transactional messaging, marketing, session recording and public image use require separate purpose-specific choices.',
-    'Consent must record scope, version, signer, timestamp and withdrawal. Declining publicity must not affect access to therapy. These complete workflows are scheduled for later phases.',
+    'Treatment, sharing with a school or another professional, messages, marketing, session recording and public image use are separate choices. You can say yes to some and no to others.',
+    'You can withdraw consent at any time from the parent portal or by contacting the center. Saying no to publicity never affects your child’s access to therapy.',
   ],
 };
 
@@ -234,9 +235,6 @@ export default function Information() {
         <p>Visit the center in Gurugram, or get in touch with your questions.</p>
         <div className="contact-grid">
           <div>
-            <span className="status yellow" data-testid="contact-verification">
-              Published details · pending center verification
-            </span>
             <div className="contact-detail">
               <MapPin />
               <div>
@@ -286,7 +284,7 @@ export default function Information() {
             >
               Open directions <ArrowUpRight size={17} />
             </a>
-            <span className="small muted">Opens Google Maps on request. Coordinates are not verified.</span>
+            <span className="small muted">Opens Google Maps with directions to the center.</span>
           </div>
         </div>
       </section>
@@ -298,7 +296,6 @@ export default function Information() {
       <section className="container section-pad policy-page">
         <span className="eyebrow">TRUST & TRANSPARENCY</span>
         <h1 data-testid="policy-title">{data[0]}</h1>
-        <span className="editorial-label">Stage A explanation · final policy pending approval</span>
         {data.slice(1).map((paragraph, i) => (
           <p key={i} data-testid={`policy-paragraph-${i}`}>
             {paragraph}
@@ -331,8 +328,8 @@ export default function Information() {
           </article>
         ))}
         {pathname === '/for-parents' && (
-          <Link className="button primary" to="/login?demo=parent" data-testid="parents-demo-link">
-            Explore the parent demonstration
+          <Link className="button primary" to="/login?role=parent" data-testid="parents-demo-link">
+            Parent login
             <ArrowUpRight size={17} />
           </Link>
         )}
@@ -372,7 +369,7 @@ export const NotFound = () => (
     <ShieldCheck size={36} />
     <span className="eyebrow">THIS PAGE ISN’T HERE</span>
     <h1 data-testid="not-found-title">Let’s find a familiar path.</h1>
-    <p>The page may not be published yet, or the address may be incorrect.</p>
+    <p>The address may be incorrect, or the page may have moved.</p>
     <Link to="/" className="button primary" data-testid="not-found-home">
       Back to home
       <ArrowUpRight size={17} />

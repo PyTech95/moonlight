@@ -23,7 +23,6 @@ export const DIRECTOR_PHOTO =
 export const DIRECTOR_QUALS = [
   'Bachelor of Physiotherapy (BPT)',
   'Pediatric rehabilitation focus',
-  'Credentials pending center verification',
 ];
 // Default therapist profiles shown on About until the admin adds real ones from Site images.
 export const TEAM_DEFAULTS = [

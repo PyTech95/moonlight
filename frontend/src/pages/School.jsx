@@ -43,7 +43,7 @@ const Dashboard = ({ data }) => {
       <PortalHeading
         title={`Welcome, ${data.school?.name || 'school team'}.`}
         subtitle="Only children whose families approved sharing with you are shown."
-        action={<span className="status yellow">School portal · Demo</span>}
+        action={<span className="status yellow">School portal</span>}
       />
       {groups.length > 0 && <ClassFilter groups={groups} value={group} onChange={setGroup} />}
       <div className="stat-grid">

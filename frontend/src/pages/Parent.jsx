@@ -178,7 +178,7 @@ export default function Parent() {
         <PortalHeading
           eyebrow="EVERY CHILD, THEIR OWN JOURNEY"
           title={child ? `A little more about ${child.name}` : 'My child'}
-          subtitle="Fictional demonstration · Shared information only"
+          subtitle="Shared with your family by the care team"
         />
         {!child ? (
           <EmptyState
@@ -191,7 +191,7 @@ export default function Parent() {
               <span className="child-avatar">{child.initials}</span>
               <div>
                 <h2 data-testid="child-name">{child.name}</h2>
-                <p>{child.age_label} · Demonstration profile</p>
+                <p>{child.age_label}</p>
               </div>
               <span className="status sage">Shared with family</span>
             </div>
@@ -214,7 +214,7 @@ export default function Parent() {
                 <h2>Room for the small moments.</h2>
                 <p data-testid="child-shared-summary">{child.shared_summary}</p>
                 <span className="small muted">
-                  Fictional professional observation · No internal clinical notes are shared here.
+                  Shared by your child’s care team. Internal clinical notes are not shown here.
                 </span>
               </section>
             </div>
@@ -259,7 +259,7 @@ export default function Parent() {
             <span className="status lavender">{a.category}</span>
             <h2>{a.title}</h2>
             <p>{a.body}</p>
-            <span className="small muted">{dateLabel(a.created_at)} · Fictional classroom update</span>
+            <span className="small muted">{dateLabel(a.created_at)} · Classroom update</span>
           </article>
         ))}
       </>
@@ -275,7 +275,7 @@ export default function Parent() {
               <span className="mini-avatar">{child.initials}</span>
               <div>
                 <strong>{child.name}</strong>
-                <span>{child.age_label} · Demo</span>
+                <span>{child.age_label}</span>
               </div>
               <Heart size={18} />
             </div>
@@ -345,7 +345,7 @@ export default function Parent() {
                 <span className="status lavender">This week’s learning</span>
                 <h3>{a.title}</h3>
                 <p>{a.body}</p>
-                <span className="small muted">Fictional class · {dateLabel(a.created_at)}</span>
+                <span className="small muted">Class · {dateLabel(a.created_at)}</span>
               </article>
             ))}
           </section>

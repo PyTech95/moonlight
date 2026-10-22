@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
-import { ArrowUpRight, Check, ArrowLeft, MapPin, CircleHelp, ClipboardCheck } from 'lucide-react';
+import { ArrowUpRight, Check, ArrowLeft, MapPin, CircleHelp } from 'lucide-react';
 import { services } from '../lib/content';
 import { ServiceGrid, FinalCTA, FAQSection } from '../components/PublicSections';
 import { AttendFormats } from '../components/AttendFormats';
@@ -20,9 +20,6 @@ export default function Services() {
             Eight areas of support listed by the center. Explore them at your own pace, then talk to the team about your
             child.
           </p>
-          <span className="editorial-label" data-testid="services-review-status">
-            Clinical content draft · professional review pending
-          </span>
         </section>
         <section className="container section-pad top-zero">
           <ServiceGrid />
@@ -65,7 +62,7 @@ export default function Services() {
                 </Link>
               </div>
               <span className="editorial-label" data-testid="service-draft-status">
-                Clinical content draft · not individual advice
+                General information · not individual advice
               </span>
             </div>
             <div className={`large-service-icon ${service.color}`}>
@@ -120,16 +117,6 @@ export default function Services() {
               activities and how goals will be reviewed. There is no fixed recovery timeline or guaranteed outcome.
             </p>
           </article>
-          <div className="review-panel" data-testid="service-review-metadata">
-            <ClipboardCheck size={21} />
-            <div>
-              <strong>Professional review pending</strong>
-              <p>
-                Author: editorial draft · Reviewer: not yet appointed · Review date: not yet approved. Clinical
-                references and verified staff details must be added before publication.
-              </p>
-            </div>
-          </div>
         </div>
         <aside className="service-aside">
           <h2>Your next step</h2>

@@ -185,7 +185,7 @@ export default function BookingModal() {
                 {busy ? 'Sending…' : 'Send request'} <ArrowUpRight size={17} />
               </button>
               <span className="booking-note">
-                <ShieldCheck size={13} /> A request only · a fictional demo workspace · no payment is taken
+                <ShieldCheck size={13} /> A request only · the team will call you back · no payment is taken
               </span>
             </form>
           </>

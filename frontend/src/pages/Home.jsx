@@ -218,7 +218,7 @@ export default function Home() {
               <span>
                 <Heart size={17} /> A LITTLE WINDOW INTO THEIR DAY
               </span>
-              <span className="status sage">Fictional demo</span>
+              <span className="status sage">Parent portal preview</span>
             </div>
             <h3 data-testid="portal-preview-greeting">
               Hello, Aarav’s family <span>☀</span>
@@ -257,7 +257,7 @@ export default function Home() {
           <div>
             <span className="eyebrow">A PLACE TO BEGIN</span>
             <h2 data-testid="visit-center-title">Find us in Sector 37C, Gurugram.</h2>
-            <p>Opposite Alpine Convent School · Center details awaiting verification</p>
+            <p>First floor, opposite Alpine Convent School · near Param Ultrasound</p>
           </div>
           <Link className="button outlined" to="/locations/gurugram-sector-37c" data-testid="home-directions">
             Plan your visit <ArrowUpRight size={17} />

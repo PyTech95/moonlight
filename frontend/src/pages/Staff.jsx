@@ -34,7 +34,7 @@ export default function Staff() {
         <PortalHeading
           eyebrow="YOUR ASSIGNED CASELOAD"
           title="Every child. An individual story."
-          subtitle="Fictional profiles · Only children assigned to your demo account are shown."
+          subtitle="Only children assigned to you are shown."
         />
         <div className="children-grid">
           {data.children.map((c) => (
@@ -74,8 +74,8 @@ export default function Staff() {
                 <div className="review-panel">
                   <ShieldCheck size={20} />
                   <p>
-                    Internal clinical notes, signing and amendment workflows are not enabled in Stage A. These are
-                    synthetic shared observations only.
+                    These are family-facing observations. Signed clinical notes are kept outside the portal for
+                    now.
                   </p>
                 </div>
               </section>
@@ -89,14 +89,14 @@ export default function Staff() {
       <PortalHeading
         title="A thoughtful start to your day."
         subtitle="Your agenda, your children, and a little room to plan."
-        action={<span className="status sage">Care team · Demo</span>}
+        action={<span className="status sage">Care team</span>}
       />
       <div className="stat-grid three">
         <div className="stat-card" data-testid="staff-stat-sessions">
           <CalendarDays />
           <span>Today’s sessions</span>
           <strong>{today.length}</strong>
-          <small>Scheduled in the demo</small>
+          <small>Scheduled today</small>
         </div>
         <div className="stat-card" data-testid="staff-stat-children">
           <Users />

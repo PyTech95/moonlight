@@ -59,7 +59,7 @@ export const PublicLayout = () => {
               <Phone size={13} />
               {org?.phone || 'Contact the center'}
             </a>
-            <span data-testid="language-english" title="English. Hindi content is awaiting professional review.">
+            <span data-testid="language-english" title="English">
               <Globe size={13} /> English
             </span>
           </div>
@@ -118,8 +118,8 @@ export const PublicLayout = () => {
               A little support.
               <br />A world of possibility.
             </p>
-            <span className="footer-note" data-testid="footer-draft-notice">
-              Stage A preview · Center details and clinical content await approval.
+            <span className="footer-note" data-testid="footer-location-note">
+              Child development & family support · Sector 37C, Gurugram
             </span>
           </div>
           <div>
