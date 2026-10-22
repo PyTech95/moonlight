@@ -365,6 +365,35 @@ const HistoryView = ({ history }) => (
   </div>
 );
 
+const SearchPagesStatus = () => {
+  const [state, setState] = useState(null);
+  const load = () => api.get('/admin/site/build').then(({ data }) => setState(data)).catch(() => {});
+  useEffect(() => {
+    load();
+    const timer = setInterval(load, 20000);
+    return () => clearInterval(timer);
+  }, []);
+  if (!state || state.status === 'not_configured') return null;
+  const refresh = async () => {
+    try {
+      const { data } = await api.post('/admin/site/build');
+      toast.success(data.message);
+      load();
+    } catch (e) {
+      toast.error(errorText(e));
+    }
+  };
+  return (
+    <p className="cms-build" data-testid="cms-build-status">
+      Google & AI pages: {state.status === 'running' ? 'refreshing now…' : state.last_finished ? `last refreshed ${new Date(state.last_finished).toLocaleString('en-IN')}` : 'refresh automatically ~1 minute after you save'}
+      {state.last_result && state.status !== 'running' ? ` · ${state.last_result}` : ''}{' '}
+      <button type="button" className="text-link" onClick={refresh}>
+        Refresh now
+      </button>
+    </p>
+  );
+};
+
 export const AdminContent = () => {
   const site = useContent();
   const [data, setData] = useState(null);
@@ -442,6 +471,7 @@ export const AdminContent = () => {
           </button>
         }
       />
+      <SearchPagesStatus />
       <div className="cms-shell">
         <nav className="cms-nav" aria-label="Website content sections">
           <span className="cms-nav-label">

@@ -23,6 +23,7 @@ from attachments import router as attachments_router
 from digests import router as digests_router
 from classes import router as classes_router
 from cms import router as cms_router
+from site_build import router as site_build_router
 from cron import router as cron_router, startup_definitions
 from jobs import notification_worker
 from media_processing import media_worker
@@ -117,5 +118,5 @@ app.include_router(home_plans_router, prefix='/api')
 app.include_router(access_router, prefix='/api')
 app.include_router(consents_router, prefix='/api')
 app.include_router(operations_router, prefix='/api')
-for extra in [team_router, documents_router, sharing_router, school_portal_router, schools_admin_router, attachments_router, digests_router, classes_router, cron_router, cms_router]:
+for extra in [team_router, documents_router, sharing_router, school_portal_router, schools_admin_router, attachments_router, digests_router, classes_router, cron_router, cms_router, site_build_router]:
     app.include_router(extra, prefix='/api')

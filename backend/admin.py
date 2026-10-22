@@ -9,6 +9,7 @@ from storage import put_object, APP_NAME
 from emailer import send_email
 from whatsapp import send_whatsapp_template
 from vault import encrypt_secret
+import cms
 from media_processing import validate_and_normalize_image
 import uuid
 
@@ -66,6 +67,7 @@ async def update_settings(data: SettingsInput, p=Depends(principal)):
     if not result.matched_count:
         raise HTTPException(409, 'Settings changed. Refresh before saving.')
     await audit(p, 'settings:update', 'organization')
+    cms._notify_change(p['org_id'])
     return await db.settings.find_one({'org_id': p['org_id']}, {'_id': 0, 'org_id': 0})
 
 
@@ -211,6 +213,7 @@ async def upload_media(slot: str = Form(...), name: str = Form(''), role: str = 
         field = 'director_photo' if slot == 'director' else slot
         await db.settings.update_one({'org_id': p['org_id']}, {'$set': {field: path}, '$inc': {'version': 1}})
     await audit(p, 'settings:update', f'media:{slot}')
+    cms._notify_change(p['org_id'])
     return await _return_settings(p['org_id'])
 
 
@@ -232,4 +235,5 @@ async def remove_media(data: MediaRemoveInput, p=Depends(principal)):
         field = 'director_photo' if data.slot == 'director' else data.slot
         await db.settings.update_one({'org_id': p['org_id']}, {'$set': {field: ''}, '$inc': {'version': 1}})
     await audit(p, 'settings:update', f'media-remove:{data.slot}')
+    cms._notify_change(p['org_id'])
     return await _return_settings(p['org_id'])
