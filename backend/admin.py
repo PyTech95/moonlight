@@ -2,6 +2,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File, Form
 from pydantic import Field, EmailStr
 import asyncio
+import logging
 from config import db, Input, Payload, uid, IS_DEMO
 from security import principal, ScopedRepo, authorize, audit
 from storage import put_object, APP_NAME
@@ -181,9 +182,13 @@ async def upload_media(slot: str = Form(...), name: str = Form(''), role: str = 
             normalized, width, height = await asyncio.to_thread(validate_and_normalize_image, data)
         except ValueError as exc:
             raise HTTPException(422, str(exc))
-        except RuntimeError:
-            raise HTTPException(503, 'The malware scanner is updating its definitions. Please try again in a minute.')
-        result = await asyncio.to_thread(put_object, f'{APP_NAME}/{p["org_id"]}/public/{uuid.uuid4()}.webp', normalized, 'image/webp')
+        except RuntimeError as exc:
+            raise HTTPException(503, str(exc) or 'The virus scanner is not ready. Please try again in a few minutes.')
+        try:
+            result = await asyncio.to_thread(put_object, f'{APP_NAME}/{p["org_id"]}/public/{uuid.uuid4()}.webp', normalized, 'image/webp')
+        except Exception:
+            logging.getLogger('storage').exception('Site image upload failed')
+            raise HTTPException(503, 'The image could not be saved to storage. Check the server storage settings and try again.')
         path = result['path']
     if slot == 'team':
         if not name.strip() or not role.strip():

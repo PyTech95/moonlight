@@ -119,6 +119,8 @@ async def create_practice_video(
             caption_path = caption_object['path']
         except ValueError as exc:
             raise HTTPException(422, str(exc))
+        except RuntimeError as exc:
+            raise HTTPException(503, str(exc) or 'The virus scanner is not ready. Please try again in a few minutes.')
     timestamp = now()
     record = {
         'id': uid(), 'org_id': p['org_id'], 'child_id': child['id'], 'child_name': child['name'],
