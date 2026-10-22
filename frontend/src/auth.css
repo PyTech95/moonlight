@@ -46,7 +46,7 @@
 .invitation-summary{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:6px 0 16px;font-size:13px;line-height:1.7}
 .access-success-icon{width:54px;height:54px;color:var(--teal)}
 /* Security setup */
-.security-setup-page{max-width:760px;margin:0 auto;padding:56px 20px 64px;background:var(--ivory);min-height:100vh}
+.security-setup-page{min-height:100vh;background:var(--ivory);padding:56px max(20px,calc((100% - 720px)/2)) 64px}
 .security-setup-page h1{font-family:var(--heading);font-weight:400;font-size:32px;color:var(--deep);margin:4px 0 8px}
 .security-heading{margin-bottom:18px;display:flex;gap:14px;align-items:flex-start}
 .security-heading>svg{width:40px;height:40px;color:var(--teal);flex-shrink:0}

@@ -104,7 +104,7 @@ export default function Login() {
     setBusy('login');
     try {
       const next = await login(email, password);
-      if (next.mfa_required) setChallenge(next.challenge_token);
+      if (next.challenge_token) setChallenge(next.challenge_token);
       else arrive(next);
     } catch (error) {
       toast.error(errorText(error));

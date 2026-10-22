@@ -127,7 +127,7 @@ export default function AccountSecurity({ embedded = false }) {
             />
           </div>
           <Button onClick={confirm} disabled={busy === 'confirm'} data-testid="confirm-mfa-setup">
-            {busy === 'confirm' ? 'Verifying…' : 'Confirm MFA'}
+            {busy === 'confirm' ? 'Verifying…' : 'Confirm and continue'}
           </Button>
         </div>
       )}

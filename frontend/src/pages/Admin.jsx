@@ -254,7 +254,7 @@ export default function Admin() {
             'enquiries',
           ],
           [Clock, 'Pending changes', stats.pending_requests, 'No appointment changed yet', 'schedule'],
-          [Users, 'Unrecorded attendance', stats.attendance_unrecorded, 'Across demo sessions', 'schedule'],
+          [Users, 'Unrecorded attendance', stats.attendance_unrecorded, 'Sessions without attendance', 'schedule'],
         ].map(([Icon, title, value, note, path], i) => (
           <Link className="stat-card" to={`/portal/admin/${path}`} key={title} data-testid={`admin-stat-${i}`}>
             <div>

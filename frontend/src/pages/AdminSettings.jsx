@@ -434,7 +434,7 @@ export const AdminIntegrations = () => {
     <>
       <PortalHeading
         eyebrow="OUTSIDE SERVICES"
-        title="Connections"
+        title="Integrations"
         subtitle="Services the center uses for alerts, payments and online classes."
       />
       <div className="integration-grid">

@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }) => {
   };
   const login = async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
-    if (!data.mfa_required) apply(data);
+    if (!data.challenge_token) apply(data); // a challenge reply has no session yet
     return data;
   };
   const verifyMfa = async (challenge_token, code) => {
