@@ -26,7 +26,10 @@ BASE_URL = _read_backend_url()
 
 
 def _secret():
-    for line in Path("/app/backend/.env").read_text().splitlines():
+    if os.environ.get("WEBHOOK_CRON_SECRET"):
+        return os.environ["WEBHOOK_CRON_SECRET"]
+    env_file = Path(__file__).resolve().parents[1] / ".env"
+    for line in (env_file if env_file.exists() else Path("/app/backend/.env")).read_text().splitlines():
         if line.startswith("WEBHOOK_CRON_SECRET="):
             return line.split("=", 1)[1].strip().strip('"')
     raise RuntimeError("secret missing")

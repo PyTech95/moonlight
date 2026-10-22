@@ -17,6 +17,7 @@ import os
 import sys
 
 import bcrypt
+from email_validator import EmailNotValidError, validate_email
 
 from config import APP_MODE, PRODUCTION_ORG_ID, client, db, now, uid
 from seed import SETTINGS
@@ -45,7 +46,11 @@ async def main(args) -> None:
     if APP_MODE != 'production':
         sys.exit('Set APP_MODE=production and PRODUCTION_ORG_ID in backend/.env before creating the real admin.')
     org_id = PRODUCTION_ORG_ID
-    email = args.email.strip().lower()
+    try:
+        # Same rules as the login form, so the account can always sign in.
+        email = validate_email(args.email.strip(), check_deliverability=False).normalized.lower()
+    except EmailNotValidError as exc:
+        sys.exit(f'That email address will not work for sign-in: {exc}')
     password = read_password()
     problem = password_problem(password)
     if problem:

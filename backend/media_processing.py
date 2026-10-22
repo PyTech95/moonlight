@@ -34,13 +34,13 @@ def scan_path(path: str):
     clamscan = shutil.which('clamscan') or '/usr/bin/clamscan'
     problem = ''
     if not os.path.exists(clamscan):
-        problem = 'The virus scanner (ClamAV) is not installed on the server, so uploads are paused. Ask the developer to install ClamAV or set MALWARE_SCAN.'
+        problem = 'The virus scanner (ClamAV) is not installed on the server, so uploads are paused. Ask the developer to install ClamAV.'
     elif not definitions_ready():
         refresh_in_background()  # never block an upload request on a multi-minute download
         problem = 'The virus scanner is downloading its definitions. Please try again in a few minutes.'
     if problem:
         if SCAN_MODE == 'optional':
-            logger.warning('Upload accepted without a malware scan: %s', problem)
+            logger.warning('Upload accepted without a malware scan (MALWARE_SCAN=optional; ClamAV not ready).')
             return
         raise ScannerUnavailable(problem)
     result = subprocess.run([clamscan, '--no-summary', path], capture_output=True, text=True, timeout=180)
