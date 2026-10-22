@@ -57,7 +57,8 @@ PERMISSIONS = {
 }
 PERMISSIONS['parent'] |= {'sharing:manage', 'team:read', 'team:contribute', 'team:message', 'classes:read', 'classes:book'}
 PERMISSIONS['staff'] |= {'team:read', 'team:contribute', 'team:message', 'team:clinical', 'classes:read', 'classes:manage'}
-PERMISSIONS['admin'] |= {'team:read', 'team:contribute', 'team:message', 'team:clinical', 'schools:manage', 'classes:read', 'classes:manage'}
+PERMISSIONS['admin'] |= {'team:read', 'team:contribute', 'team:message', 'team:clinical', 'schools:manage', 'classes:read', 'classes:manage',
+                       'content:read', 'content:edit'}
 PROFILE_PERMISSIONS = {
     'guardian': PERMISSIONS['parent'],
     'clinical': PERMISSIONS['staff'] | {'consents:read'},
