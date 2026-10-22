@@ -1,52 +1,36 @@
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Home, MapPin, Monitor } from 'lucide-react';
+import { useContent } from '../lib/cms';
 
-const FORMATS = [
-  [
-    'center',
-    MapPin,
-    'At the center',
-    'Sessions in our sensory-friendly rooms at Sector 37C, Gurugram, with the full range of equipment.',
-    'Individual & small groups',
-  ],
-  [
-    'online',
-    Monitor,
-    'Online',
-    'Live video sessions from home, through the secure family portal. A parent joins to practise together.',
-    'Secure in-app video room',
-  ],
-  [
-    'home',
-    Home,
-    'At home',
-    'A therapist visits your home to work on everyday routines in the place they actually happen.',
-    'Gurugram service areas',
-  ],
-];
+const ICON = [MapPin, Monitor, Home];
+const KEYS = ['center', 'online', 'home'];
 
-export const AttendFormats = ({ compact = false }) => (
-  <section className={`attend-formats ${compact ? 'compact' : ''}`} data-testid="attend-formats">
-    <div className="attend-head">
-      <span className="eyebrow">THREE WAYS TO ATTEND</span>
-      <h2>Center · Online · At home</h2>
-      <p>
-        Which format suits your child is agreed with the therapist after assessment. Not every goal works well online,
-        and home visits depend on the area.
-      </p>
-    </div>
-    <div className="attend-grid">
-      {FORMATS.map(([key, Icon, title, text, tag]) => (
-        <article className={`attend-card ${key}`} key={key} data-testid={`attend-format-${key}`}>
-          <Icon size={26} strokeWidth={1.5} />
-          <h3>{title}</h3>
-          <p>{text}</p>
-          <span>{tag}</span>
-        </article>
-      ))}
-    </div>
-    <Link to="/book-assessment" className="text-link" data-testid="attend-formats-enquire">
-      Ask which format fits your child <ArrowUpRight size={16} />
-    </Link>
-  </section>
-);
+export const AttendFormats = ({ compact = false }) => {
+  const { t, items } = useContent();
+  return (
+    <section className={`attend-formats ${compact ? 'compact' : ''}`} data-testid="attend-formats">
+      <div className="attend-head">
+        <span className="eyebrow">{t('attend.eyebrow')}</span>
+        <h2>{t('attend.title')}</h2>
+        <p>{t('attend.text')}</p>
+      </div>
+      <div className="attend-grid">
+        {items('attend.items').map(({ title, text, tag }, i) => {
+          const Icon = ICON[i % ICON.length];
+          const key = KEYS[i] || `format-${i}`;
+          return (
+            <article className={`attend-card ${key}`} key={key} data-testid={`attend-format-${key}`}>
+              <Icon size={26} strokeWidth={1.5} />
+              <h3>{title}</h3>
+              <p>{text}</p>
+              <span>{tag}</span>
+            </article>
+          );
+        })}
+      </div>
+      <Link to="/book-assessment" className="text-link" data-testid="attend-formats-enquire">
+        {t('attend.link')} <ArrowUpRight size={16} />
+      </Link>
+    </section>
+  );
+};

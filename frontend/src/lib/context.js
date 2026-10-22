@@ -81,10 +81,12 @@ export const useOrganization = () => useContext(OrganizationContext);
 
 export const BookingProvider = ({ children }) => {
   const [open, setOpen] = useState(false);
-  return (
-    <BookingContext.Provider value={{ open, setOpen, openBooking: () => setOpen(true) }}>
-      {children}
-    </BookingContext.Provider>
-  );
+  const [preset, setPreset] = useState({});
+  // openBooking() or openBooking({ service, source }); a click event passed directly is ignored.
+  const openBooking = (options) => {
+    setPreset(options && !options.nativeEvent && !options.target ? options : {});
+    setOpen(true);
+  };
+  return <BookingContext.Provider value={{ open, setOpen, preset, openBooking }}>{children}</BookingContext.Provider>;
 };
 export const useBooking = () => useContext(BookingContext);

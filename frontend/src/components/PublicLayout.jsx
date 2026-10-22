@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { ArrowUpRight, Phone, MapPin, Globe, Menu, X, LockKeyhole } from 'lucide-react';
-import { LOGO } from '../lib/content';
 import { useOrganization, useBooking } from '../lib/context';
+import { useContent, Lines } from '../lib/cms';
 import BookingModal from './BookingModal';
 
 const WhatsAppIcon = ({ size = 26 }) => (
@@ -11,38 +11,32 @@ const WhatsAppIcon = ({ size = 26 }) => (
   </svg>
 );
 const phoneDigits = (p) => (p || '').replace(/[^\d]/g, '');
-const WA_MSG = encodeURIComponent(
-  'Hi Moonlight Neurocare 🌙, I’d like to book an assessment for my child. Please share the next steps. Thank you!',
-);
 
-export const Brand = ({ footer = false }) => (
-  <Link
-    to="/"
-    className={`brand ${footer ? 'brand-footer' : ''}`}
-    data-testid={footer ? 'footer-brand' : 'site-brand'}
-    aria-label="Moonlight Neurocare home"
-  >
-    <img src={LOGO} alt="Moonlight Neurocare" width="48" height="48" />
-    <span className="brand-wordmark">
-      moonlight<span>NEUROCARE</span>
-    </span>
-  </Link>
-);
-const links = [
-  ['About', '/about'],
-  ['Therapies', '/therapies'],
-  ['Sports', '/sports'],
-  ['Areas', '/locations'],
-  ['For Parents', '/for-parents'],
-  ['Resources', '/resources'],
-  ['Contact', '/contact'],
-];
+export const Brand = ({ footer = false }) => {
+  const { img, t } = useContent();
+  return (
+    <Link
+      to="/"
+      className={`brand ${footer ? 'brand-footer' : ''}`}
+      data-testid={footer ? 'footer-brand' : 'site-brand'}
+      aria-label={`${t('global.name')} home`}
+    >
+      <img src={img('global.logo')} alt={t('global.name')} width="48" height="48" />
+      <span className="brand-wordmark">
+        moonlight<span>NEUROCARE</span>
+      </span>
+    </Link>
+  );
+};
 
 export const PublicLayout = () => {
   const [open, setOpen] = useState(false);
   const { organization: org, error, reload } = useOrganization();
   const { openBooking } = useBooking();
+  const { t, items } = useContent();
   const wa = phoneDigits(org?.phone);
+  const waMessage = encodeURIComponent(t('global.whatsapp_message'));
+  const tel = org ? `tel:+${wa}` : '/contact';
   return (
     <div className="public-layout">
       <a href="#main-content" className="skip-link" data-testid="skip-to-content">
@@ -51,11 +45,11 @@ export const PublicLayout = () => {
       <div className="utility">
         <div className="container utility-inner">
           <span data-testid="utility-location">
-            <MapPin size={13} /> Sector 37C, Gurugram <span className="utility-divider">|</span> Growing together, one
-            step at a time
+            <MapPin size={13} /> {t('global.location_short')} <span className="utility-divider">|</span>{' '}
+            {t('global.utility_tagline')}
           </span>
           <div>
-            <a href={org ? `tel:${org.phone.replaceAll(' ', '')}` : '/contact'} data-testid="utility-phone">
+            <a href={tel} data-testid="utility-phone">
               <Phone size={13} />
               {org?.phone || 'Contact the center'}
             </a>
@@ -69,23 +63,18 @@ export const PublicLayout = () => {
         <div className="container nav-inner">
           <Brand />
           <nav aria-label="Main navigation" className={open ? 'nav-links open' : 'nav-links'}>
-            {links.map(([name, to]) => (
-              <NavLink
-                to={to}
-                key={to}
-                onClick={() => setOpen(false)}
-                data-testid={`nav-${name.toLowerCase().replaceAll(' ', '-')}`}
-              >
-                {name}
+            {items('global.nav').map(({ label, to }) => (
+              <NavLink to={to} key={to + label} onClick={() => setOpen(false)} data-testid={`nav-${label.toLowerCase().replaceAll(' ', '-')}`}>
+                {label}
               </NavLink>
             ))}
           </nav>
           <div className="nav-actions">
             <Link to="/login" className="portal-link" data-testid="portal-login-link">
-              <LockKeyhole size={15} /> Login
+              <LockKeyhole size={15} /> {t('global.login_label')}
             </Link>
-            <button className="button primary nav-book" onClick={openBooking} data-testid="nav-book-assessment">
-              Book an assessment <ArrowUpRight size={16} />
+            <button className="button primary nav-book" onClick={() => openBooking()} data-testid="nav-book-assessment">
+              {t('global.book_label')} <ArrowUpRight size={16} />
             </button>
             <button
               className="icon-button mobile-menu"
@@ -115,54 +104,44 @@ export const PublicLayout = () => {
           <div>
             <Brand footer />
             <p data-testid="footer-tagline">
-              A little support.
-              <br />A world of possibility.
+              <Lines text={t('global.footer_tagline')} />
             </p>
             <span className="footer-note" data-testid="footer-location-note">
-              Child development & family support · Sector 37C, Gurugram
+              {t('global.footer_note')}
             </span>
           </div>
           <div>
             <h2>Explore</h2>
-            {[
-              ['Our approach', '/our-approach'],
-              ['Our therapies', '/therapies'],
-              ['What to expect', '/what-to-expect'],
-              ['Fees & payment process', '/fees'],
-              ['FAQs', '/faqs'],
-            ].map(([t, l]) => (
-              <Link key={l} to={l} data-testid={`footer-explore-${l.slice(1)}`}>
-                {t}
+            {items('global.footer_explore').map(({ label, to }) => (
+              <Link key={to + label} to={to} data-testid={`footer-explore-${to.replace(/^\//, '').replaceAll('/', '-')}`}>
+                {label}
               </Link>
             ))}
           </div>
           <div>
             <h2>Here for your family</h2>
-            {[
-              ['Parent portal', '/login'],
-              ['Families visiting India', '/international/families-visiting-india'],
-              ['Contact & directions', '/contact'],
-              ['Accessibility', '/policies/accessibility'],
-              ['Complaints & contact', '/policies/complaints'],
-            ].map(([t, l]) => (
-              <Link key={l} to={l} data-testid={`footer-family-${l.split('/').pop()}`}>
-                {t}
+            {items('global.footer_family').map(({ label, to }) => (
+              <Link key={to + label} to={to} data-testid={`footer-family-${to.split('/').pop()}`}>
+                {label}
               </Link>
             ))}
           </div>
           <div>
             <h2>Come say hello</h2>
-            <p data-testid="footer-address">{org?.address || 'Sector 37C, Gurugram · full address loading'}</p>
+            <p data-testid="footer-address">{org?.address || t('global.location_short')}</p>
+            {t('global.hours') && <p data-testid="footer-hours">{t('global.hours')}</p>}
             <a data-testid="footer-email" href={org ? `mailto:${org.email}` : '/contact'}>
               {org?.email || 'Contact us'}
             </a>
-            <a data-testid="footer-phone" href={org ? `tel:${org.phone.replaceAll(' ', '')}` : '/contact'}>
+            <a data-testid="footer-phone" href={tel}>
               {org?.phone || 'Phone details loading'}
             </a>
           </div>
         </div>
         <div className="container footer-bottom">
-          <span data-testid="footer-copyright">© {new Date().getFullYear()} Moonlight Neurocare</span>
+          <span data-testid="footer-copyright">
+            © {new Date().getFullYear()} {t('global.name')}
+          </span>
           <div>
             <Link data-testid="footer-privacy" to="/policies/privacy">
               Privacy
@@ -175,27 +154,21 @@ export const PublicLayout = () => {
             </Link>
           </div>
           <span>
-            Thoughtful care. Shared possibilities. ·{' '}
-            <a
-              className="footer-credit"
-              data-testid="footer-developer"
-              href="https://pytechdigital.com"
-              target="_blank"
-              rel="noreferrer"
-            >
+            {t('global.footer_motto')} ·{' '}
+            <a className="footer-credit" data-testid="footer-developer" href="https://pytechdigital.com" target="_blank" rel="noreferrer">
               Developed by pytechdigital.com
             </a>
           </span>
         </div>
       </footer>
       <div className="mobile-action-strip">
-        <a className="strip-call" data-testid="mobile-call" href={org ? `tel:+${wa}` : '/contact'}>
+        <a className="strip-call" data-testid="mobile-call" href={tel}>
           <Phone size={18} /> Call
         </a>
         <a
           className="strip-whatsapp"
           data-testid="mobile-whatsapp"
-          href={wa ? `https://wa.me/${wa}?text=${WA_MSG}` : '/contact'}
+          href={wa ? `https://wa.me/${wa}?text=${waMessage}` : '/contact'}
           target="_blank"
           rel="noreferrer"
         >
@@ -203,17 +176,12 @@ export const PublicLayout = () => {
         </a>
       </div>
       <div className="floating-actions">
-        <a
-          className="float-btn float-call"
-          href={org ? `tel:+${wa}` : '/contact'}
-          data-testid="float-call"
-          aria-label="Call the center"
-        >
+        <a className="float-btn float-call" href={tel} data-testid="float-call" aria-label="Call the center">
           <Phone size={22} />
         </a>
         <a
           className="float-btn float-whatsapp"
-          href={wa ? `https://wa.me/${wa}?text=${WA_MSG}` : '/contact'}
+          href={wa ? `https://wa.me/${wa}?text=${waMessage}` : '/contact'}
           target="_blank"
           rel="noreferrer"
           data-testid="float-whatsapp"

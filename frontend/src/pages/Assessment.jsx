@@ -1,19 +1,26 @@
 import { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowUpRight, CheckCircle2, Phone, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { api, errorText } from '../lib/api';
-import { services } from '../lib/content';
 import { useOrganization } from '../lib/context';
+import { useContent, Lines } from '../lib/cms';
+import { useSeo } from '../lib/useSeo';
+import { EXTRA_INTERESTS } from '../components/BookingModal';
 
 export default function Assessment() {
   const { organization } = useOrganization();
+  const { t, therapies } = useContent();
+  const [params] = useSearchParams();
   const isDemo = organization?.app_mode === 'demo';
+  const interests = [...therapies.map((s) => s.title), ...EXTRA_INTERESTS];
+  useSeo({ title: t('seo.book.title'), description: t('seo.book.description'), path: '/book-assessment' });
   const [form, setForm] = useState({
     guardian_name: '',
     phone: '+91 ',
     email: '',
-    service: 'I am not sure',
+    service: interests.includes(params.get('service')) ? params.get('service') : 'I am not sure',
+    source: (params.get('source') || 'Website').slice(0, 90),
     contact_time: 'Any time',
     contact_preference: 'Phone',
     consent: false,
@@ -54,7 +61,7 @@ export default function Assessment() {
         <p data-testid="enquiry-success-message">
           {isDemo
             ? 'Your demonstration enquiry has been saved. This is a request, not a confirmed appointment. No email or phone notification has been sent.'
-            : 'Thank you. The team will contact you at your preferred time to talk through next steps. This is a request, not a confirmed appointment.'}
+            : t('book.success')}
         </p>
         <div className="reference" data-testid="enquiry-reference">
           Reference <strong>{result.reference}</strong>
@@ -79,18 +86,16 @@ export default function Assessment() {
           <Link to="/" className="breadcrumb" data-testid="assessment-back">
             <ArrowLeft size={15} /> Back to home
           </Link>
-          <span className="eyebrow">LET’S TAKE THE FIRST STEP, TOGETHER</span>
+          <span className="eyebrow">{t('book.eyebrow')}</span>
           <h1 data-testid="assessment-title">
-            Tell us a little.
-            <br />
-            We’ll listen.
+            <Lines text={t('book.title')} />
           </h1>
-          <p>Ask about an assessment, explore a therapy, or simply find out where to begin.</p>
+          <p>{t('book.text')}</p>
           <div className="request-explanation" data-testid="assessment-request-explanation">
             <ShieldCheck size={25} />
             <div>
-              <strong>A request, not a reservation.</strong>
-              <p>The team will discuss your needs, availability and fees before confirming an appointment.</p>
+              <strong>{t('book.explain_title')}</strong>
+              <p>{t('book.explain_text')}</p>
             </div>
           </div>
           <h2>Prefer a conversation?</h2>
@@ -169,9 +174,8 @@ export default function Assessment() {
               value={form.service}
               onChange={change}
             >
-              <option>I am not sure</option>
-              {services.map((s) => (
-                <option key={s.slug}>{s.title}</option>
+              {interests.map((s) => (
+                <option key={s}>{s}</option>
               ))}
             </select>
           </div>

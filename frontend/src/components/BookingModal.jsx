@@ -1,21 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { api, errorText } from '../lib/api';
 import { useBooking } from '../lib/context';
 import { toast } from 'sonner';
 import { ArrowUpRight, Check, ShieldCheck } from 'lucide-react';
+import { useContent } from '../lib/cms';
 
-const SERVICES = [
-  'Speech Therapy',
-  'Occupational Therapy',
-  'ABA Therapy',
-  'Sensory Integration Therapy',
-  'Yoga Therapy',
-  'Neurodevelopmental Therapy',
-  'Remedial Therapy',
-  'Music & Play Therapy',
-  'I am not sure',
-];
+// Extra interests the backend accepts besides the therapies listed in the CMS.
+export const EXTRA_INTERESTS = ['Home Tutor (Special Educator)', 'Therapy Home Visit', 'Indoor Sports', 'I am not sure'];
 const blank = {
   guardian_name: '',
   phone: '+91 ',
@@ -27,8 +19,13 @@ const blank = {
 };
 
 export default function BookingModal() {
-  const { open, setOpen } = useBooking();
+  const { open, setOpen, preset } = useBooking();
+  const { therapies } = useContent();
+  const SERVICES = [...therapies.map((t) => t.title), ...EXTRA_INTERESTS];
   const [form, setForm] = useState(blank);
+  useEffect(() => {
+    if (open && preset?.service) setForm((f) => ({ ...f, service: preset.service }));
+  }, [open, preset]);
   const [busy, setBusy] = useState(false),
     [done, setDone] = useState(null),
     [error, setError] = useState('');
@@ -57,7 +54,7 @@ export default function BookingModal() {
         contact_time: form.contact_time,
         contact_preference: form.contact_preference,
         consent: form.consent,
-        source: 'Website popup',
+        source: preset?.source || 'Website popup',
         country: 'India',
       };
       if (form.email) body.email = form.email;
