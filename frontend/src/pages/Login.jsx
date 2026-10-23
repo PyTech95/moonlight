@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -14,7 +14,8 @@ import {
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth, useOrganization } from '../lib/context';
-import { errorText } from '../lib/api';
+import { api, errorText } from '../lib/api';
+import { IN_APP } from '../lib/app';
 import { Brand } from '../components/PublicLayout';
 
 // One sign-in for everyone (website and mobile app). The account decides which workspace opens;
@@ -67,7 +68,7 @@ export const workspaceHome = (account) =>
     : `/portal/${account.role}/${account.role === 'admin' ? 'overview' : 'today'}`;
 
 export default function Login() {
-  const { user, accept, login, verifyMfa } = useAuth(),
+  const { user, accept, login, verifyMfa, requestOtp, verifyOtp } = useAuth(),
     { organization } = useOrganization(),
     navigate = useNavigate(),
     [params] = useSearchParams();
@@ -78,7 +79,15 @@ export default function Login() {
     [password, setPassword] = useState(''),
     [busy, setBusy] = useState(''),
     [challenge, setChallenge] = useState(''),
-    [code, setCode] = useState('');
+    [code, setCode] = useState(''),
+    [otpMode, setOtpMode] = useState(false),
+    [otpOptions, setOtpOptions] = useState(null),
+    [identifier, setIdentifier] = useState(''),
+    [otpToken, setOtpToken] = useState(''),
+    [otpCode, setOtpCode] = useState('');
+  useEffect(() => {
+    api.get('/auth/options').then(({ data }) => setOtpOptions(data)).catch(() => setOtpOptions(null));
+  }, []);
   const showDemo = organization?.app_mode === 'demo';
   const active = ROLES.find((r) => r.key === role);
   if (user) return <Navigate to={workspaceHome(user)} replace />;
@@ -112,6 +121,31 @@ export default function Login() {
       setBusy('');
     }
   };
+  const sendCode = async (event) => {
+    event.preventDefault();
+    setBusy('otp');
+    try {
+      const data = await requestOtp(identifier);
+      setOtpToken(data.challenge_token);
+      setOtpCode(data.demo_code || '');
+      toast.success(data.message);
+    } catch (error) {
+      toast.error(errorText(error));
+    } finally {
+      setBusy('');
+    }
+  };
+  const checkCode = async (event) => {
+    event.preventDefault();
+    setBusy('otp-verify');
+    try {
+      arrive(await verifyOtp(otpToken, otpCode));
+    } catch (error) {
+      toast.error(errorText(error));
+    } finally {
+      setBusy('');
+    }
+  };
   const confirm = async (event) => {
     event.preventDefault();
     setBusy('mfa');
@@ -125,9 +159,11 @@ export default function Login() {
   };
   return (
     <main className="auth-page">
-      <Link to="/" className="auth-back" data-testid="login-back-home">
-        <ArrowLeft /> Back to website
-      </Link>
+      {!IN_APP && (
+        <Link to="/" className="auth-back" data-testid="login-back-home">
+          <ArrowLeft /> Back to website
+        </Link>
+      )}
       <section className="auth-panel">
         <Brand />
         <span className="eyebrow">SECURE LOGIN</span>
@@ -193,6 +229,44 @@ export default function Login() {
                 </button>
               ))}
             </div>
+            {role === 'parent' && otpMode ? (
+              <form className="production-login" onSubmit={otpToken ? checkCode : sendCode} data-testid="otp-login-form">
+                <div className="auth-method-heading">
+                  <KeyRound />
+                  <div>
+                    <strong>Sign in with a one-time code</strong>
+                    <span>
+                      {otpToken
+                        ? 'Enter the 6-digit code we sent. It works once, for 10 minutes.'
+                        : `Enter the mobile number or email the center has for you. We’ll send a code by ${
+                            otpOptions?.otp_whatsapp ? 'WhatsApp or email' : 'email'
+                          }.`}
+                    </span>
+                  </div>
+                </div>
+                {!otpToken ? (
+                  <div className="field">
+                    <label htmlFor="otp-identifier">Mobile number or email</label>
+                    <input id="otp-identifier" value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="username"
+                      placeholder="98765 43210" required data-testid="otp-identifier" />
+                  </div>
+                ) : (
+                  <div className="field">
+                    <label htmlFor="otp-code">6-digit code</label>
+                    <input id="otp-code" value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))} autoComplete="one-time-code"
+                      inputMode="numeric" pattern="[0-9]{6}" required data-testid="otp-code" />
+                  </div>
+                )}
+                <div className="login-form-row">
+                  <button type="button" className="text-link" onClick={() => (otpToken ? (setOtpToken(''), setOtpCode('')) : setOtpMode(false))} data-testid="otp-back">
+                    {otpToken ? 'Send a new code' : 'Use my password instead'}
+                  </button>
+                  <button className="button primary" disabled={busy.startsWith('otp')} data-testid="otp-submit">
+                    {otpToken ? (busy === 'otp-verify' ? 'Checking…' : 'Sign in') : busy === 'otp' ? 'Sending…' : 'Send code'} <ArrowRight />
+                  </button>
+                </div>
+              </form>
+            ) : (
             <form className="production-login" onSubmit={signIn} data-testid="production-login-form">
               <div className="auth-method-heading">
                 <LockKeyhole />
@@ -233,7 +307,13 @@ export default function Login() {
                   {busy === 'login' ? 'Signing in…' : 'Sign in'} <ArrowRight />
                 </button>
               </div>
+              {role === 'parent' && otpOptions?.otp && (
+                <button type="button" className="text-link otp-switch" onClick={() => setOtpMode(true)} data-testid="otp-switch">
+                  <KeyRound size={15} /> No password? Sign in with a one-time code
+                </button>
+              )}
             </form>
+            )}
             <p className="auth-help" data-testid="login-no-account">
               Don’t have an account yet? Accounts are created by invitation from the center.{' '}
               <Link to="/contact">Contact the center</Link>.

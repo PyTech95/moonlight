@@ -25,6 +25,8 @@ def _sanitize_settings(doc):
     clean['smtp_password_set'] = bool(doc.get('smtp_app_password'))
     clean['wa_token_set'] = bool(doc.get('wa_access_token'))
     clean['daily_key_set'] = bool(doc.get('daily_api_key'))
+    rp = doc.get('razorpay') or {}
+    clean['razorpay_on'] = bool(rp.get('enabled') and rp.get('key_secret'))
     return clean
 
 

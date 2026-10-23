@@ -8,13 +8,30 @@ import { dateLabel } from '../lib/api';
 import { StaffPracticePage } from '../components/practice/StaffPractice';
 import { TeamSpace } from '../components/team/TeamSpace';
 import { ClassesPage } from '../components/classes/ClassesPage';
+import { ScheduleBoard } from '../components/ops/ScheduleBoard';
+import { AdminChildren } from './AdminChildren';
+import { Billing } from './Billing';
 
 export default function Staff() {
   const { view = 'today' } = useParams(),
-    { data } = useWorkspace(),
+    { data, user } = useWorkspace(),
     [selected, setSelected] = useState(null),
     [filter, setFilter] = useState('Today');
+  const desk = ['reception', 'finance'].includes(user?.access_profile);
   if (view === 'more') return <MorePage />;
+  if (view === 'billing' || (view === 'today' && user?.access_profile === 'finance')) return <Billing />;
+  if (view === 'children' && desk) return <AdminChildren />;
+  if (view === 'schedule')
+    return (
+      <>
+        <PortalHeading
+          eyebrow={desk ? 'THE CENTER’S SHARED AGENDA' : 'YOUR WEEK'}
+          title={desk ? 'Schedule' : 'My week'}
+          subtitle={desk ? 'Book sessions with clash checks and answer family requests.' : 'Your sessions this week. Tap one to mark attendance or join an online session.'}
+        />
+        <ScheduleBoard mode={user?.access_profile === 'reception' ? 'manage' : 'therapist'} />
+      </>
+    );
   if (view === 'practice') return <StaffPracticePage />;
   if (view === 'team')
     return (

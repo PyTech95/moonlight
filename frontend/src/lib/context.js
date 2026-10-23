@@ -40,6 +40,11 @@ export const AuthProvider = ({ children }) => {
     const { data } = await api.post('/auth/mfa/verify-login', { challenge_token, code });
     return apply(data);
   };
+  const requestOtp = async (identifier) => (await api.post('/auth/otp/request', { identifier })).data;
+  const verifyOtp = async (challenge_token, code) => {
+    const { data } = await api.post('/auth/otp/verify', { challenge_token, code });
+    return apply(data);
+  };
   const acceptInvitation = async (payload) => {
     const { data } = await api.post('/auth/invitations/accept', payload);
     return apply(data);
@@ -49,7 +54,7 @@ export const AuthProvider = ({ children }) => {
     apply(null);
   };
   return (
-    <AuthContext.Provider value={{ user, loading, accept, login, verifyMfa, acceptInvitation, refreshMe, logout }}>
+    <AuthContext.Provider value={{ user, loading, accept, login, verifyMfa, requestOtp, verifyOtp, acceptInvitation, refreshMe, logout }}>
       {children}
     </AuthContext.Provider>
   );

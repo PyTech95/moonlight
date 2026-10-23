@@ -21,6 +21,10 @@ import { TeamSpace } from '../components/team/TeamSpace';
 import { AdminSchools } from './AdminSchools';
 import { AdminAccounts } from './AdminAccounts';
 import { ClassesPage } from '../components/classes/ClassesPage';
+import { AdminChildren } from './AdminChildren';
+import { ScheduleBoard } from '../components/ops/ScheduleBoard';
+import { Billing } from './Billing';
+import { useNavigate } from 'react-router-dom';
 
 export const STAGES = [
   'New',
@@ -35,7 +39,8 @@ export const STAGES = [
 ];
 export default function Admin() {
   const { view = 'overview' } = useParams(),
-    { data, refresh } = useWorkspace();
+    { data, refresh } = useWorkspace(),
+    navigate = useNavigate();
   const [search, setSearch] = useState(''),
     [stage, setStage] = useState('All stages'),
     [busy, setBusy] = useState(false);
@@ -72,65 +77,19 @@ export default function Admin() {
   if (view === 'integrations') return <AdminIntegrations />;
   if (view === 'audit') return <AdminAudit />;
   if (view === 'checklist') return <AdminChecklist />;
+  if (view === 'billing') return <Billing />;
   if (view === 'schedule')
     return (
       <>
         <PortalHeading
           eyebrow="THE CENTER’S SHARED AGENDA"
-          title="A clear view of the week."
-          subtitle="Upcoming sessions and change requests from families."
+          title="Schedule"
+          subtitle="Book sessions with clash checks, answer family requests and set therapist hours. Times are India time."
         />
-        <SessionList sessions={data.appointments} />
-        <section className="portal-section">
-          <h2>Change requests awaiting review</h2>
-          {data.requests.length ? (
-            data.requests.map((r) => (
-              <article key={r.id} className="request-row" data-testid={`admin-request-${r.id}`}>
-                <CalendarDays size={20} />
-                <div>
-                  <strong>
-                    {r.child_name} · {r.kind}
-                  </strong>
-                  <p>
-                    {r.service} · {r.preferred_date || 'Absence'} · {r.reason}
-                  </p>
-                </div>
-                <span className="status yellow">{r.status}</span>
-              </article>
-            ))
-          ) : (
-            <p className="muted" data-testid="admin-no-requests">
-              No change requests yet.
-            </p>
-          )}
-          <p className="small muted">
-            Review visibility is available. Accepting requests is gated until conflict-safe scheduling is implemented.
-          </p>
-        </section>
+        <ScheduleBoard mode="manage" />
       </>
     );
-  if (view === 'children')
-    return (
-      <>
-        <PortalHeading
-          eyebrow="FAMILIES AT THE CENTER"
-          title="Children & family records"
-          subtitle="Administration sees basic profiles, not clinical notes or shared care summaries."
-        />
-        <div className="children-grid">
-          {data.children.map((c) => (
-            <article className="child-record" data-testid={`admin-child-${c.id}`} key={c.id}>
-              <span className="child-avatar">{c.initials}</span>
-              <div>
-                <h2>{c.name}</h2>
-                <p>{c.age_label}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-        <p className="muted small">Invite parents and therapists for a child from Accounts &amp; consent.</p>
-      </>
-    );
+  if (view === 'children') return <AdminChildren />;
   if (view === 'enquiries') {
     const records = data.enquiries.filter(
       (e) =>
@@ -212,6 +171,15 @@ export default function Admin() {
                     {e.task.title} · {e.task.status}
                   </span>
                   <span className="status yellow">Notice: {e.notification.status}</span>
+                  {e.child_id ? (
+                    <button className="text-button" onClick={() => navigate(`/portal/admin/children?child=${e.child_id}`)} data-testid={`enquiry-child-${e.id}`}>
+                      Open child record
+                    </button>
+                  ) : (
+                    <button className="button primary small" onClick={() => navigate(`/portal/admin/children?enrol=${e.id}`)} data-testid={`enquiry-enrol-${e.id}`}>
+                      Enrol child
+                    </button>
+                  )}
                 </div>
               </article>
             ))}
@@ -255,8 +223,8 @@ export default function Admin() {
             'Awaiting the next conversation',
             'enquiries',
           ],
-          [Clock, 'Pending changes', stats.pending_requests, 'No appointment changed yet', 'schedule'],
-          [Users, 'Unrecorded attendance', stats.attendance_unrecorded, 'Sessions without attendance', 'schedule'],
+          [Clock, 'Family requests', stats.pending_requests, 'Session changes to answer', 'schedule'],
+          [Users, 'Attendance to mark', stats.attendance_unrecorded, 'Past sessions not yet marked', 'schedule'],
         ].map(([Icon, title, value, note, path], i) => (
           <Link className="stat-card" to={`/portal/admin/${path}`} key={title} data-testid={`admin-stat-${i}`}>
             <div>
@@ -335,12 +303,9 @@ export default function Admin() {
       </section>
       <div className="gentle-note">
         <CircleAlert size={21} />
-        <p>
-          Collected revenue, invoices and renewals are <strong>unavailable</strong> until billing is configured — not
-          zero.
-        </p>
-        <Link to="/portal/admin/checklist" data-testid="admin-roadmap-link">
-          Phase checklist
+        <p>Invoices, packages and payments are in Billing. Set prices and switch on Razorpay there.</p>
+        <Link to="/portal/admin/billing" data-testid="admin-billing-link">
+          Open billing
           <ArrowUpRight size={16} />
         </Link>
       </div>

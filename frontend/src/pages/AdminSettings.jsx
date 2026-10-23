@@ -29,7 +29,8 @@ export const AdminSettings = () => {
   const [nbusy, setNbusy] = useState(''),
     [pw, setPw] = useState('');
   const [watok, setWatok] = useState(''),
-    [wbusy, setWbusy] = useState('');
+    [wbusy, setWbusy] = useState(''),
+    [dailyKey, setDailyKey] = useState('');
   const { reload } = useOrganization();
   useEffect(() => {
     api
@@ -45,6 +46,9 @@ export const AdminSettings = () => {
           wa_phone_number_id: data.wa_phone_number_id || '',
           wa_template_name: data.wa_template_name || '',
           wa_template_language: data.wa_template_language || 'en_US',
+          wa_otp_template: data.wa_otp_template || '',
+          wa_otp_language: data.wa_otp_language || 'en',
+          daily_domain: data.daily_domain || '',
         }),
       )
       .catch((e) => setError(errorText(e)));
@@ -121,6 +125,8 @@ export const AdminSettings = () => {
         wa_access_token: watok,
         wa_template_name: form.wa_template_name || '',
         wa_template_language: form.wa_template_language || 'en_US',
+        wa_otp_template: form.wa_otp_template || '',
+        wa_otp_language: form.wa_otp_language || 'en',
       });
       setForm((f) => ({
         ...f,
@@ -130,11 +136,38 @@ export const AdminSettings = () => {
         wa_phone_number_id: data.wa_phone_number_id || '',
         wa_template_name: data.wa_template_name || '',
         wa_template_language: data.wa_template_language || 'en_US',
+        wa_otp_template: data.wa_otp_template || '',
+        wa_otp_language: data.wa_otp_language || 'en',
       }));
       setWatok('');
       toast.success('WhatsApp alert settings saved.');
     } catch (e) {
       setError(errorText(e));
+      toast.error(errorText(e));
+    } finally {
+      setWbusy('');
+    }
+  };
+  const saveVideo = async (e) => {
+    e.preventDefault();
+    setWbusy('video');
+    try {
+      const { data } = await api.patch('/admin/video', { daily_domain: form.daily_domain || '', daily_api_key: dailyKey });
+      setForm((f) => ({ ...f, daily_domain: data.daily_domain || '', daily_key_set: data.daily_key_set }));
+      setDailyKey('');
+      toast.success('Video settings saved.');
+    } catch (e) {
+      toast.error(errorText(e));
+    } finally {
+      setWbusy('');
+    }
+  };
+  const testVideo = async () => {
+    setWbusy('video-test');
+    try {
+      const { data } = await api.post('/admin/video/test');
+      toast.success(data.message);
+    } catch (e) {
       toast.error(errorText(e));
     } finally {
       setWbusy('');
@@ -384,6 +417,23 @@ export const AdminSettings = () => {
                 placeholder="en_US"
               />
             </div>
+            <div className="field">
+              <label htmlFor="wa-otp-template">Sign-in code template (optional)</label>
+              <input
+                id="wa-otp-template"
+                data-testid="wa-otp-template"
+                value={form.wa_otp_template}
+                onChange={(e) => setForm({ ...form, wa_otp_template: e.target.value })}
+                placeholder="e.g. moonlight_login_code"
+              />
+              <small className="tm-hint">
+                An approved Authentication template with a copy-code button. When set, parents who sign in with their mobile number get the code on WhatsApp; otherwise it goes by email.
+              </small>
+            </div>
+            <div className="field">
+              <label htmlFor="wa-otp-lang">Sign-in template language</label>
+              <input id="wa-otp-lang" value={form.wa_otp_language} onChange={(e) => setForm({ ...form, wa_otp_language: e.target.value })} placeholder="en" />
+            </div>
             <div className="notify-actions">
               <Button type="submit" disabled={wbusy === 'save'} className="button primary" data-testid="save-whatsapp">
                 <Save size={16} />
@@ -398,6 +448,30 @@ export const AdminSettings = () => {
               >
                 <Send size={15} />
                 {wbusy === 'test' ? 'Sending…' : 'Send test WhatsApp'}
+              </button>
+            </div>
+          </form>
+          <form className="notify-section" onSubmit={saveVideo} data-testid="video-settings">
+            <h2>Online video sessions (Daily.co)</h2>
+            <p className="muted small">
+              Used for online group classes and online 1:1 sessions. Create a free account at daily.co, then copy the API key (Developers) and your domain.
+            </p>
+            <div className="field">
+              <label htmlFor="daily-domain">Daily domain</label>
+              <input id="daily-domain" value={form.daily_domain} onChange={(e) => setForm({ ...form, daily_domain: e.target.value })} placeholder="https://moonlight.daily.co" />
+            </div>
+            <div className="field">
+              <label htmlFor="daily-key">API key</label>
+              <input id="daily-key" type="password" value={dailyKey} onChange={(e) => setDailyKey(e.target.value)}
+                placeholder={form.daily_key_set ? '•••••••• saved — leave blank to keep' : 'Daily API key'} autoComplete="off" />
+            </div>
+            <div className="notify-actions">
+              <Button type="submit" disabled={wbusy === 'video'} className="button primary" data-testid="save-video">
+                <Save size={16} />
+                {wbusy === 'video' ? 'Saving…' : 'Save video settings'}
+              </Button>
+              <button type="button" className="button outlined" disabled={wbusy === 'video-test' || !form.daily_key_set} onClick={testVideo}>
+                {wbusy === 'video-test' ? 'Checking…' : 'Test connection'}
               </button>
             </div>
           </form>
@@ -425,8 +499,8 @@ export const AdminIntegrations = () => {
   const cards = [
     [Mail, 'Email alerts', 'Gmail (app password)', 'New-enquiry alerts, invitations and password-reset emails.', s && (emailOn ? 'on' : 'off'), true],
     [MessageSquare, 'WhatsApp alerts', 'Meta WhatsApp Cloud API', 'A WhatsApp message to the center for every new enquiry.', s && (whatsappOn ? 'on' : 'off'), true],
-    [CreditCard, 'Payments', 'Razorpay (planned)', 'Online fee payments and receipts.', 'planned', false],
-    [Video, 'Online classes', 'Daily.co video (planned)', 'Secure video rooms for online therapy classes.', 'planned', false],
+    [CreditCard, 'Payments', 'Razorpay', 'Online fee payments by UPI, card and net banking, with receipts.', s && (s.razorpay_on ? 'on' : 'off'), 'billing'],
+    [Video, 'Online sessions', 'Daily.co video', 'Private video rooms for online classes and 1:1 sessions.', s && (s.daily_key_set && s.daily_domain ? 'on' : 'off'), true],
     [Instagram, 'Instagram', 'Official Instagram API (planned)', 'Show the center’s latest posts on the website.', 'planned', false],
   ];
   const label = { on: ['sage', 'Connected'], off: ['yellow', 'Not set up'], planned: ['lavender', 'Planned'] };
@@ -448,7 +522,7 @@ export const AdminIntegrations = () => {
             <strong>{provider}</strong>
             <p>{description}</p>
             {configurable && (
-              <Link to="/portal/admin/settings" className="text-link" data-testid={`integration-setup-${i}`}>
+              <Link to={configurable === 'billing' ? '/portal/admin/billing' : '/portal/admin/settings'} className="text-link" data-testid={`integration-setup-${i}`}>
                 {state === 'on' ? 'Manage in Settings' : 'Set up in Settings'}
               </Link>
             )}

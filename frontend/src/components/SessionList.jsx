@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { CalendarDays, Clock, MapPin, ArrowUpRight, Check, X } from 'lucide-react';
+import { CalendarDays, Clock, MapPin, ArrowUpRight, Check, X, Video } from 'lucide-react';
+import { joinVideo } from './ops/ScheduleBoard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
 import { api, errorText, dateLabel, timeLabel } from '../lib/api';
@@ -35,7 +36,7 @@ export const SessionList = ({ sessions, compact = false }) => {
     setBusy(true);
     try {
       await api.patch(`/appointments/${session.id}/attendance`, { attendance, version: session.version });
-      toast.success('Session attendance saved. No package credits were changed.');
+      toast.success(attendance === 'Present' ? 'Marked present. A package session is used if the child has one.' : 'Attendance saved.');
       await refresh();
     } catch (e) {
       toast.error(errorText(e));
@@ -82,6 +83,11 @@ export const SessionList = ({ sessions, compact = false }) => {
                     {session.room} <span>·</span> {session.mode}
                   </p>
                 </div>
+                {session.mode_key === 'online' && session.status !== 'Cancelled' && role !== 'admin' && (
+                  <button className="session-action" onClick={() => joinVideo(session)} data-testid={`join-video-${session.id}`}>
+                    <Video size={15} /> Join video
+                  </button>
+                )}
                 {role === 'parent' && (
                   <button
                     className="session-action"

@@ -33,6 +33,7 @@ const Admin = lazy(() => import('./pages/Admin'));
 const School = lazy(() => import('./pages/School'));
 const AccountAccess = lazy(() => import('./pages/AccountAccess'));
 const AccountSecurity = lazy(() => import('./pages/AccountSecurity'));
+const PaymentComplete = lazy(() => import('./pages/PaymentComplete'));
 
 const RouteEffects = () => {
   const { pathname } = useLocation();
@@ -92,6 +93,7 @@ function App() {
                       <Route key={path} path={`/${path}`} element={<Information />} />
                     ))}
                     <Route path="/policies/:policy" element={<Information />} />
+                    <Route path="/payment-complete" element={<PaymentComplete />} />
                     <Route path="/appointment" element={<Navigate to="/book-assessment" replace />} />
                     <Route path="*" element={<NotFound />} />
                   </Route>

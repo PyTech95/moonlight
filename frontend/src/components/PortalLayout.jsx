@@ -27,6 +27,7 @@ import {
   KeyRound,
   MonitorPlay,
   FileText,
+  Wallet,
 } from 'lucide-react';
 import { Brand } from './PublicLayout';
 import { useAuth } from '../lib/context';
@@ -57,6 +58,7 @@ const navigation = {
     ['child', 'My child', Users],
     ['practice', 'Home practice', Video],
     ['schedule', 'Schedule', CalendarDays],
+    ['payments', 'Payments', Wallet],
     ['activities', 'Home activities', Sprout],
     ['updates', 'Classroom updates', MessageSquare],
     ['classes', 'Classes', MonitorPlay],
@@ -66,8 +68,10 @@ const navigation = {
   ],
   staff: [
     ['today', 'Today', Sun],
+    ['schedule', 'Week', CalendarDays],
     ['practice', 'Home practice', Video],
     ['children', 'Children', Users],
+    ['billing', 'Billing', Wallet],
     ['team', 'Support plans', ClipboardCheck],
     ['classes', 'Classes', BookOpen],
     ['more', 'More', MoreHorizontal],
@@ -88,6 +92,7 @@ const navigation = {
     ['schools', 'Schools', School],
     ['accounts', 'Accounts & consent', KeyRound],
     ['schedule', 'Schedule', CalendarDays],
+    ['billing', 'Billing', Wallet],
     ['integrations', 'Integrations', Plug],
     ['content', 'Website content', FileText],
     ['media', 'Site images', Image],
@@ -268,10 +273,17 @@ export const PortalLayout = () => {
   const busy = workspace.scope !== scope || workspace.busy;
   const error = workspace.scope === scope ? workspace.error : '';
 
+  // Reception and finance accounts use the staff workspace with a front-desk menu.
+  const STAFF_MENU = {
+    reception: ['today', 'schedule', 'children', 'billing', 'classes', 'more'],
+    finance: ['billing', 'children', 'more'],
+  };
+  const staffMenu = STAFF_MENU[user.access_profile];
   const items = navigation[role].filter(
     ([key]) =>
       (role !== 'school' || key !== 'staff' || user.school_role === 'coordinator') &&
-      (key !== 'checklist' || user.demo),
+      (key !== 'checklist' || user.demo) &&
+      (role !== 'staff' || (staffMenu ? staffMenu.includes(key) : key !== 'billing')),
   );
   const initials =
     (user.display_name || '')

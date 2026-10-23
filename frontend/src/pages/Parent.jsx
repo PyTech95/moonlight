@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useWorkspace, PortalHeading, EmptyState } from '../components/PortalLayout';
 import { SessionList } from '../components/SessionList';
+import { ParentPayments } from './ParentPayments';
 import { api, errorText, dateLabel } from '../lib/api';
 import { toast } from 'sonner';
 import { Button } from '../components/ui/button';
@@ -108,6 +109,7 @@ export default function Parent() {
   const child = data.children[0],
     next = data.appointments[0];
   if (view === 'more') return <MorePage />;
+  if (view === 'payments') return <ParentPayments />;
   if (view === 'sharing') return <ParentSharing />;
   if (view === 'classes') return <ClassesPage role="parent" />;
   if (view === 'team')
@@ -164,8 +166,9 @@ export default function Parent() {
                   <p>
                     {r.preferred_date || 'Absence request'} · {r.reason}
                   </p>
+                  {r.decision_note && <p className="ops-muted">Center: {r.decision_note}</p>}
                 </div>
-                <span className="status yellow">{r.status}</span>
+                <span className={`status ${r.status === 'Approved' ? 'sage' : r.status === 'Declined' ? 'peach' : 'yellow'}`}>{r.status}</span>
               </div>
             ))}
           </section>
@@ -374,46 +377,29 @@ export default function Parent() {
 
 export const MorePage = () => {
   const { role } = useWorkspace();
+  const items =
+    role === 'parent'
+      ? [
+          [CreditCard, 'Payments & receipts', '/portal/parent/payments', 'Invoices, receipts, session packages and paying online.'],
+          [MessageSquare, 'Messages with the team', '/portal/parent/team', 'Your child’s support team: messages, goals and meetings. Not for emergencies.'],
+          [Video, 'Classes & online sessions', '/portal/parent/classes', 'Group classes and online video sessions. The room opens 15 minutes before.'],
+          [ShieldCheck, 'Sharing & consent', '/portal/parent/sharing', 'What schools can see, and the consents you have given.'],
+        ]
+      : [
+          [Video, 'Classes & online sessions', `/portal/${role}/classes`, 'Group classes and online video sessions.'],
+          [MessageSquare, 'Support plans & messages', `/portal/${role}/team`, 'Goals, school activities and team messages.'],
+          [ShieldCheck, 'Account security', '/security-setup', 'Your 2-step sign-in, recovery codes and signed-in devices.'],
+        ];
   return (
     <>
-      <PortalHeading
-        eyebrow="YOUR CIRCLE OF SUPPORT"
-        title="A little more, all in one place."
-        subtitle="Additional services will open only after configuration and approval."
-      />
+      <PortalHeading eyebrow="YOUR CIRCLE OF SUPPORT" title="More" subtitle="Everything else, in one place." />
       <div className="more-grid">
-        {[
-          [
-            MessageSquare,
-            'Secure messages',
-            'Not configured',
-            'No messaging provider is connected. Contact the center for support; messaging is not an emergency service.',
-          ],
-          [
-            CreditCard,
-            'Payments & receipts',
-            'Not configured',
-            'Payments and real invoices are not enabled. Records will never be withheld because of overdue payment.',
-          ],
-          [
-            Video,
-            'Live sessions',
-            'Not configured',
-            'Video access, consent and host controls require an approved provider. Recording is off.',
-          ],
-          [
-            ShieldCheck,
-            'Consent & pickup',
-            'Stage C',
-            'Purpose-specific consents and verified pickup permissions are planned before live care.',
-          ],
-        ].map(([Icon, title, status, description], i) => (
-          <article className="more-item" key={title} data-testid={`more-feature-${i}`}>
+        {items.map(([Icon, title, to, description], i) => (
+          <Link className="more-item" to={to} key={title} data-testid={`more-feature-${i}`}>
             <Icon size={25} />
-            <span className="status yellow">{status}</span>
             <h2>{title}</h2>
             <p>{description}</p>
-          </article>
+          </Link>
         ))}
       </div>
       {role === 'parent' && (
