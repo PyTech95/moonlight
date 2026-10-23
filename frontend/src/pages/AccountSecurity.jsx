@@ -64,7 +64,8 @@ export const DeleteAccount = () => {
           <p>
             This asks the center to delete your sign-in for the portal and the app. Invoices and clinical records the
             center must keep by law stay with the center.{' '}
-            <Link to="/policies/account-deletion">How deletion works</Link>
+            <Link to="/policies/account-deletion">How deletion works</Link> ·{' '}
+            <Link to="/policies/privacy">Privacy policy</Link>
           </p>
           {open ? (
             <div className="field">

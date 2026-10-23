@@ -355,6 +355,10 @@ export default function Login() {
         <p className="auth-privacy">
           <ShieldCheck /> Every sign-in is logged. Never share your password or verification codes.
         </p>
+        <p className="auth-links" data-testid="auth-policy-links">
+          <Link to="/policies/privacy">Privacy policy</Link> · <Link to="/policies/terms">Terms</Link> ·{' '}
+          <Link to="/policies/account-deletion">Deleting your account</Link>
+        </p>
       </section>
     </main>
   );

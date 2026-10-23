@@ -124,6 +124,21 @@ on the VPS and every change to the site appears in the app without an update. It
 [mobile/README.md](mobile/README.md). Keep the signing key in `android-signing/` safe: Google Play needs the same key
 for every update.
 
+**Google Play review sign-in.** Google's reviewers sign in to check the app. Create their account (a parent linked
+to one demo child with no real information) once the site is live, with the same email and password entered in
+Play Console → App content → Sign in details:
+
+```bash
+cd /opt/moonlight/backend
+sudo -u moonlight REVIEW_PASSWORD='the password' /opt/moonlight/venv/bin/python create_review_account.py --email google-review@moonlightneurocare.com
+```
+
+`--reset` sets a new password; `--remove` deletes the account and the demo child when it is no longer needed.
+
+**Account deletion.** Google Play requires a way to ask for account deletion. People use More → Account & privacy
+in the app (or the page `/policies/account-deletion`); requests appear at the top of Admin → Accounts & consent,
+the center gets an email, and **Delete account** completes it within 7 days.
+
 ## If something is wrong
 
 | Symptom | Check |
