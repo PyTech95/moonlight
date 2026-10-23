@@ -1,8 +1,11 @@
 name: Android app
 
-# Builds the signed Moonlight Neurocare Android app (APK for direct install, AAB for Google Play)
-# and attaches both to a GitHub Release.
-# Run it from the Actions tab ("Run workflow"), or push a tag such as app-v1.0.1.
+# Builds the Moonlight Neurocare Android app (APK for direct install, AAB for Google Play) and attaches both to a
+# GitHub Release. Run it from the Actions tab ("Run workflow"), or push a tag such as app-v1.0.1.
+#
+# Signing: with the four ANDROID_* secrets set (see mobile/README.md) the files are signed here and the release is
+# published. Without them the files are built unsigned and put on a *draft* release; sign them with the upload key
+# (apksigner / jarsigner) before installing or uploading. If the build fails, its log is put on a draft release too.
 on:
   workflow_dispatch:
     inputs:
@@ -29,9 +32,11 @@ jobs:
       APP_URL: ${{ inputs.app_url || 'https://moonlightneurocare.com/login' }}
       APP_VERSION_CODE: ${{ github.run_number }}
       APP_VERSION_NAME: 1.0.${{ github.run_number }}
+      LOG: ${{ github.workspace }}/build.log
     defaults:
       run:
         working-directory: mobile
+        shell: bash
     steps:
       - uses: actions/checkout@v4
 
@@ -48,18 +53,27 @@ jobs:
           cache-dependency-path: mobile/package-lock.json
 
       - name: Install
-        run: npm ci
+        run: |
+          set -o pipefail
+          npm ci 2>&1 | tee -a "$LOG"
 
       - name: Configure and sync the Android project
-        run: npm run sync
+        run: |
+          set -o pipefail
+          npm run sync 2>&1 | tee -a "$LOG"
 
       - name: Signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          if [ -z "$KEYSTORE_BASE64" ]; then echo "ANDROID_KEYSTORE_BASE64 secret is missing"; exit 1; fi
-          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
-          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::notice::No ANDROID_KEYSTORE_BASE64 secret: building unsigned files on a draft release."
+            echo "APP_SIGNED=no" >> "$GITHUB_ENV"
+          else
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "APP_SIGNED=yes" >> "$GITHUB_ENV"
+          fi
 
       - name: Build APK and AAB
         working-directory: mobile/android
@@ -67,23 +81,52 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon assembleRelease bundleRelease
-
-      - name: Check the signature
         run: |
-          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
-          "$APKSIGNER" verify --print-certs android/app/build/outputs/apk/release/app-release.apk | head -5
-          mkdir -p "$RUNNER_TEMP/out"
-          cp android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/out/moonlight-neurocare-$APP_VERSION_NAME.apk"
-          cp android/app/build/outputs/bundle/release/app-release.aab "$RUNNER_TEMP/out/moonlight-neurocare-$APP_VERSION_NAME.aab"
-          ls -la "$RUNNER_TEMP/out"
+          set -o pipefail
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace assembleRelease bundleRelease 2>&1 | tee -a "$LOG"
+
+      - name: Collect the files
+        run: |
+          OUT="$RUNNER_TEMP/out"; mkdir -p "$OUT"
+          APKDIR=android/app/build/outputs/apk/release
+          ls -la "$APKDIR" android/app/build/outputs/bundle/release
+          BASE="moonlight-neurocare-$APP_VERSION_NAME"
+          if [ "$APP_SIGNED" = "yes" ]; then
+            APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+            "$APKSIGNER" verify --print-certs "$APKDIR/app-release.apk" | head -5
+            cp "$APKDIR/app-release.apk" "$OUT/$BASE.apk"
+            cp android/app/build/outputs/bundle/release/app-release.aab "$OUT/$BASE.aab"
+          else
+            cp "$APKDIR"/app-release-unsigned.apk "$OUT/$BASE-unsigned.apk"
+            cp android/app/build/outputs/bundle/release/app-release.aab "$OUT/$BASE-unsigned.aab"
+          fi
+          ls -la "$OUT"
 
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then TAG="${GITHUB_REF_NAME}"; else TAG="app-build-${GITHUB_RUN_NUMBER}"; fi
-          gh release create "$TAG" "$RUNNER_TEMP"/out/* \
-            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "Moonlight Neurocare app $APP_VERSION_NAME" \
-            --notes "Android app $APP_VERSION_NAME (version code $APP_VERSION_CODE). Opens $APP_URL. APK: install directly on a phone. AAB: upload to Google Play."
+          if [ "$APP_SIGNED" = "yes" ]; then
+            gh release create "$TAG" "$RUNNER_TEMP"/out/* \
+              --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "Moonlight Neurocare app $APP_VERSION_NAME" \
+              --notes "Android app $APP_VERSION_NAME (version code $APP_VERSION_CODE). Opens $APP_URL. APK: install directly on a phone. AAB: upload to Google Play."
+          else
+            gh release create "$TAG" "$RUNNER_TEMP"/out/* \
+              --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft \
+              --title "Moonlight Neurocare app $APP_VERSION_NAME (unsigned)" \
+              --notes "Unsigned build $APP_VERSION_NAME (version code $APP_VERSION_CODE), opens $APP_URL. Sign with the upload key before installing or uploading to Google Play."
+          fi
+
+      - name: Keep the log of a failed build
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -f "$LOG" ] || echo "No log was written; see the Actions run." > "$LOG"
+          tail -c 900000 "$LOG" > "$RUNNER_TEMP/build-failed.log"
+          gh release create "app-failed-${GITHUB_RUN_NUMBER}" "$RUNNER_TEMP/build-failed.log" \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft \
+            --title "Android build ${GITHUB_RUN_NUMBER} failed" --notes "Log of the failed build (last 900 KB)."
