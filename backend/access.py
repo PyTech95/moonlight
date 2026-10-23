@@ -78,19 +78,25 @@ async def invite_user(data: InvitationInput, p=Depends(principal)):
     return await create_invitation(p, str(data.email), data.display_name, data.access_profile, data.child_ids, data.expires_hours, data.phone)
 
 
+async def deactivate_account(p: dict, user_id: str, reason: str) -> dict:
+    """Turn off an account: sign-in, sessions and child links end; records the center must keep stay."""
+    user = await db.users.find_one({'org_id': p['org_id'], 'id': user_id}, {'_id': 0})
+    if not user:
+        raise HTTPException(404, 'Account not found.')
+    await db.users.update_one({'org_id': p['org_id'], 'id': user_id}, {'$set': {'active': False, 'deactivated_at': now(), 'deactivation_reason': reason}, '$inc': {'security_version': 1}})
+    await db.sessions.delete_many({'org_id': p['org_id'], 'user_id': user_id})
+    await db.access_grants.update_many({'org_id': p['org_id'], 'user_id': user_id, 'status': 'active'}, {'$set': {'status': 'revoked', 'revoked_at': now(), 'revoked_by': p['id'], 'reason': reason}})
+    await db.children.update_many({'org_id': p['org_id']}, {'$pull': {'guardian_ids': user_id, 'staff_ids': user_id}})
+    await audit(p, 'accounts:deactivate', user_id)
+    return user
+
+
 @router.post('/admin/users/{user_id}/deactivate', response_model=Payload)
 async def deactivate_user(user_id: str, data: DeactivateInput, p=Depends(principal)):
     await authorize(p, 'accounts:manage')
     if user_id == p['id']:
         raise HTTPException(422, 'You cannot deactivate your own active account.')
-    user = await db.users.find_one({'org_id': p['org_id'], 'id': user_id}, {'_id': 0})
-    if not user:
-        raise HTTPException(404, 'Account not found.')
-    await db.users.update_one({'org_id': p['org_id'], 'id': user_id}, {'$set': {'active': False, 'deactivated_at': now(), 'deactivation_reason': data.reason}, '$inc': {'security_version': 1}})
-    await db.sessions.delete_many({'org_id': p['org_id'], 'user_id': user_id})
-    await db.access_grants.update_many({'org_id': p['org_id'], 'user_id': user_id, 'status': 'active'}, {'$set': {'status': 'revoked', 'revoked_at': now(), 'revoked_by': p['id'], 'reason': data.reason}})
-    await db.children.update_many({'org_id': p['org_id']}, {'$pull': {'guardian_ids': user_id, 'staff_ids': user_id}})
-    await audit(p, 'accounts:deactivate', user_id)
+    await deactivate_account(p, user_id, data.reason)
     return {'message': 'Account deactivated and all active sessions revoked.'}
 
 
@@ -106,3 +112,85 @@ async def revoke_access_grant(grant_id: str, data: DeactivateInput, p=Depends(pr
     await db.sessions.delete_many({'org_id': p['org_id'], 'user_id': grant['user_id']})
     await audit(p, 'access:revoke', grant_id)
     return {'message': 'Child access revoked and active sessions ended.'}
+
+# Account deletion (Google Play requires an in-app way and a web page to ask for it).
+class DeletionRequestInput(Input):
+    reason: str = Field(default='', max_length=500)
+
+
+class DeletionDecisionInput(Input):
+    note: str = Field(default='', max_length=300)
+
+
+def _deletion_view(r: dict | None) -> dict | None:
+    return {k: r.get(k) for k in ['id', 'status', 'created_at', 'completed_at', 'reason', 'note', 'user_id', 'display_name', 'email', 'role']} if r else None
+
+
+@router.get('/account/deletion-request', response_model=Payload)
+async def my_deletion_request(p=Depends(principal)):
+    r = await db.deletion_requests.find_one({'org_id': p['org_id'], 'user_id': p['id'], 'status': 'open'}, {'_id': 0})
+    return {'request': _deletion_view(r)}
+
+
+@router.post('/account/deletion-request', response_model=Payload, status_code=201)
+async def request_deletion(data: DeletionRequestInput, p=Depends(principal)):
+    existing = await db.deletion_requests.find_one({'org_id': p['org_id'], 'user_id': p['id'], 'status': 'open'}, {'_id': 0})
+    if existing:
+        return {'request': _deletion_view(existing), 'message': 'Your request is already with the center.'}
+    record = {'id': uid(), 'org_id': p['org_id'], 'user_id': p['id'], 'display_name': p.get('display_name', ''), 'email': p.get('email', ''),
+              'role': p.get('role', ''), 'reason': data.reason.strip(), 'status': 'open', 'created_at': now()}
+    await db.deletion_requests.insert_one(record.copy())
+    await audit(p, 'account:deletion-request', record['id'])
+    admins = await db.users.find({'org_id': p['org_id'], 'active': True, 'role': 'admin'}, {'_id': 0, 'email': 1}).to_list(20)
+    body = f"{record['display_name']} ({record['email']}, {record['role']}) asked for their Moonlight Neurocare account to be deleted.\n"
+    if record['reason']:
+        body += f"Reason: {record['reason']}\n"
+    body += '\nOpen Admin > Accounts & consent to complete it.'
+    for a in admins:
+        await enqueue_email(p['org_id'], a['email'], 'Account deletion request', body, f"deletion-request:{record['id']}:{a['email']}")
+    if record['email']:
+        await enqueue_email(p['org_id'], record['email'], 'We received your account deletion request',
+                            'The center has your request to delete your Moonlight Neurocare account. It is usually completed within 7 days, '
+                            'and you will get an email when it is done. If you did not ask for this, contact the center.',
+                            f"deletion-received:{record['id']}")
+    return {'request': _deletion_view(record), 'message': 'Request sent. The center will confirm by email when your account is deleted.'}
+
+
+@router.delete('/account/deletion-request', response_model=Payload)
+async def cancel_deletion(p=Depends(principal)):
+    res = await db.deletion_requests.update_many({'org_id': p['org_id'], 'user_id': p['id'], 'status': 'open'}, {'$set': {'status': 'cancelled', 'completed_at': now()}})
+    if res.modified_count:
+        await audit(p, 'account:deletion-cancel', p['id'])
+    return {'message': 'Request cancelled. Your account stays as it is.'}
+
+
+@router.get('/admin/deletion-requests', response_model=Payload)
+async def deletion_requests(p=Depends(principal)):
+    await authorize(p, 'accounts:manage')
+    items = await db.deletion_requests.find({'org_id': p['org_id']}, {'_id': 0}).sort('created_at', -1).to_list(200)
+    return {'items': [_deletion_view(r) for r in items]}
+
+
+@router.post('/admin/deletion-requests/{request_id}/complete', response_model=Payload)
+async def complete_deletion(request_id: str, data: DeletionDecisionInput, p=Depends(principal)):
+    await authorize(p, 'accounts:manage')
+    r = await db.deletion_requests.find_one({'org_id': p['org_id'], 'id': request_id, 'status': 'open'}, {'_id': 0})
+    if not r:
+        raise HTTPException(404, 'Open request not found.')
+    if r['user_id'] == p['id']:
+        raise HTTPException(422, 'Another administrator must delete your own account.')
+    await deactivate_account(p, r['user_id'], 'Deleted at the account holder\'s request')
+    # Remove sign-in details (the email can be invited again later); the name stays on records the center must keep.
+    await db.users.update_one({'org_id': p['org_id'], 'id': r['user_id']},
+                              {'$set': {'phone': '', 'email': f"deleted-{r['user_id']}@deleted.invalid", 'deleted_at': now(), 'password_hash': '', 'mfa_enabled': False},
+                               '$unset': {'mfa_secret': '', 'mfa_pending_secret': '', 'mfa_recovery_hashes': ''}})
+    await db.invitations.update_many({'org_id': p['org_id'], 'email': r['email'], 'used_at': {'$exists': False}}, {'$set': {'cancelled_at': now()}})
+    await db.deletion_requests.update_one({'org_id': p['org_id'], 'id': request_id},
+                                          {'$set': {'status': 'done', 'completed_at': now(), 'completed_by': p['id'], 'note': data.note.strip()}})
+    await audit(p, 'account:deletion-complete', request_id)
+    if r.get('email'):
+        await enqueue_email(p['org_id'], r['email'], 'Your Moonlight Neurocare account has been deleted',
+                            'Your account has been deleted and can no longer be used to sign in to the portal or the app. '
+                            'Records the center must keep by law, such as invoices and clinical notes, are kept for the period the law requires.',
+                            f'deletion-done:{request_id}')
+    return {'message': 'Account deleted: sign-in removed, sessions ended, child links removed.'}

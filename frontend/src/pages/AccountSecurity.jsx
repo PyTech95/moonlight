@@ -1,11 +1,100 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Copy, KeyRound, Laptop, LogOut, ShieldCheck, Smartphone } from 'lucide-react';
+import { CheckCircle2, Copy, KeyRound, Laptop, LogOut, ShieldCheck, Smartphone, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link, Navigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { api, errorText } from '../lib/api';
 import { useAuth } from '../lib/context';
 import { Button } from '../components/ui/button';
+
+// Google Play needs an in-app way to ask for account deletion; the center completes it from Accounts & consent.
+export const DeleteAccount = () => {
+  const [request, setRequest] = useState(undefined),
+    [open, setOpen] = useState(false),
+    [reason, setReason] = useState(''),
+    [busy, setBusy] = useState(false);
+  useEffect(() => {
+    api
+      .get('/account/deletion-request')
+      .then(({ data }) => setRequest(data.request))
+      .catch(() => setRequest(null));
+  }, []);
+  const send = async () => {
+    setBusy(true);
+    try {
+      const { data } = await api.post('/account/deletion-request', { reason });
+      setRequest(data.request);
+      setOpen(false);
+      toast.success(data.message);
+    } catch (error) {
+      toast.error(errorText(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const cancel = async () => {
+    setBusy(true);
+    try {
+      const { data } = await api.delete('/account/deletion-request');
+      setRequest(null);
+      toast.success(data.message);
+    } catch (error) {
+      toast.error(errorText(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+  if (request === undefined) return null;
+  return (
+    <div className="session-section delete-account" data-testid="delete-account">
+      <span className="eyebrow">DELETE ACCOUNT</span>
+      <h2>Delete your account</h2>
+      {request ? (
+        <>
+          <p>
+            Your request was sent on {new Date(request.created_at).toLocaleDateString('en-IN')}. The center usually
+            completes it within 7 days and confirms by email.
+          </p>
+          <Button variant="outline" onClick={cancel} disabled={busy} data-testid="delete-account-cancel">
+            Cancel the request
+          </Button>
+        </>
+      ) : (
+        <>
+          <p>
+            This asks the center to delete your sign-in for the portal and the app. Invoices and clinical records the
+            center must keep by law stay with the center.{' '}
+            <Link to="/policies/account-deletion">How deletion works</Link>
+          </p>
+          {open ? (
+            <div className="field">
+              <label htmlFor="delete-reason">Anything the center should know? (optional)</label>
+              <textarea
+                id="delete-reason"
+                value={reason}
+                maxLength={500}
+                onChange={(e) => setReason(e.target.value)}
+                data-testid="delete-account-reason"
+              />
+              <div className="ops-actions">
+                <Button onClick={send} disabled={busy} data-testid="delete-account-confirm">
+                  <Trash2 /> {busy ? 'Sending…' : 'Yes, ask to delete my account'}
+                </Button>
+                <Button variant="outline" onClick={() => setOpen(false)}>
+                  Keep my account
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button variant="outline" onClick={() => setOpen(true)} data-testid="delete-account-start">
+              <Trash2 /> Delete my account
+            </Button>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
 
 export default function AccountSecurity({ embedded = false }) {
   const { user, loading, refreshMe } = useAuth(),
@@ -185,6 +274,7 @@ export default function AccountSecurity({ embedded = false }) {
           </article>
         ))}
       </div>
+      {!embedded && user && !user.mfa_setup_required && <DeleteAccount />}
     </section>
   );
 }

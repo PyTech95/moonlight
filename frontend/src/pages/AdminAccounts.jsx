@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { KeyRound, ShieldCheck, UserPlus } from 'lucide-react';
+import { KeyRound, ShieldCheck, Trash2, UserPlus } from 'lucide-react';
 import { api, errorText } from '../lib/api';
 import { PortalHeading, useWorkspace } from '../components/PortalLayout';
 import { Check, SelectField, TextField, fmtTime, useAction } from '../components/team/teamUi';
@@ -178,13 +178,15 @@ export const AdminAccounts = () => {
   const { data: ws } = useWorkspace();
   const [data, setData] = useState(null),
     [consents, setConsents] = useState([]),
+    [deletions, setDeletions] = useState([]),
     [error, setError] = useState(''),
     { busy, run } = useAction();
   const load = () =>
-    Promise.all([api.get('/admin/access'), api.get('/consents')])
-      .then(([a, c]) => {
+    Promise.all([api.get('/admin/access'), api.get('/consents'), api.get('/admin/deletion-requests')])
+      .then(([a, c, d]) => {
         setData(a.data);
         setConsents(c.data.items);
+        setDeletions(d.data.items);
       })
       .catch((e) => setError(errorText(e)));
   useEffect(() => {
@@ -222,6 +224,17 @@ export const AdminAccounts = () => {
     )
       load();
   };
+  const completeDeletion = async (r) => {
+    if (
+      await run(
+        r.id,
+        () => api.post(`/admin/deletion-requests/${r.id}/complete`, { note: '' }),
+        'Account deleted. The person gets an email.',
+      )
+    )
+      load();
+  };
+  const openDeletions = deletions.filter((r) => r.status === 'open');
   const userName = (id) => data.users.find((u) => u.id === id)?.display_name || id;
   return (
     <>
@@ -234,6 +247,37 @@ export const AdminAccounts = () => {
         <InviteForm children={ws.children} reload={load} />
         <ConsentRequest children={ws.children} users={data.users} reload={load} />
       </div>
+      {openDeletions.length > 0 && (
+        <section className="portal-section" data-testid="deletion-requests">
+          <h2>
+            <Trash2 size={18} /> Account deletion requests
+          </h2>
+          <p className="tm-meta">
+            Deleting removes sign-in, ends sessions and unlinks children. Invoices and clinical records the center must
+            keep stay. Please complete requests within 7 days.
+          </p>
+          <div className="tm-table">
+            {openDeletions.map((r) => (
+              <div className="tm-table-row" key={r.id} data-testid={`deletion-${r.id}`}>
+                <strong>{r.display_name}</strong>
+                <span>
+                  {r.email} · {r.role}
+                  {r.reason && ` · “${r.reason}”`}
+                </span>
+                <span className="tm-meta">{fmtTime(r.created_at)}</span>
+                <button
+                  className="text-link danger"
+                  disabled={busy === r.id}
+                  onClick={() => completeDeletion(r)}
+                  data-testid={`deletion-complete-${r.id}`}
+                >
+                  Delete account
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
       <section className="portal-section">
         <h2>
           <KeyRound size={18} /> Accounts

@@ -12,6 +12,7 @@ import {
   Video,
   ShieldCheck,
   Clock,
+  UserCog,
 } from 'lucide-react';
 import { useWorkspace, PortalHeading, EmptyState } from '../components/PortalLayout';
 import { SessionList } from '../components/SessionList';
@@ -384,11 +385,12 @@ export const MorePage = () => {
           [MessageSquare, 'Messages with the team', '/portal/parent/team', 'Your child’s support team: messages, goals and meetings. Not for emergencies.'],
           [Video, 'Classes & online sessions', '/portal/parent/classes', 'Group classes and online video sessions. The room opens 15 minutes before.'],
           [ShieldCheck, 'Sharing & consent', '/portal/parent/sharing', 'What schools can see, and the consents you have given.'],
+          [UserCog, 'Account & privacy', '/security-setup', 'Devices signed in, and deleting your account.'],
         ]
       : [
           [Video, 'Classes & online sessions', `/portal/${role}/classes`, 'Group classes and online video sessions.'],
           [MessageSquare, 'Support plans & messages', `/portal/${role}/team`, 'Goals, school activities and team messages.'],
-          [ShieldCheck, 'Account security', '/security-setup', 'Your 2-step sign-in, recovery codes and signed-in devices.'],
+          [ShieldCheck, 'Account security', '/security-setup', 'Your 2-step sign-in, signed-in devices, and deleting your account.'],
         ];
   return (
     <>

@@ -645,7 +645,10 @@ export const PAGES = [
         'When you send an enquiry we collect the parent or guardian’s name, phone number, optional email, the support you are interested in, your country and how you prefer to be contacted. We use this only to respond to your enquiry and to arrange an assessment.',
         'If your family joins the center, the parent portal and app hold information the center shares with you about your child, such as goals, schedules and home-practice videos. Access is limited to your family, the care team working with your child and anyone you approve (for example, your child’s school), and every access is logged.',
         'We do not sell personal information. We use only the cookies needed to keep you signed in and to protect forms. Enquiry alerts reach the center team by email or WhatsApp.',
-        'To see, correct or delete your information, or to withdraw consent, contact the center using the details on the contact page.',
+        'The Moonlight Neurocare app for Android opens this same portal. It uses the camera and microphone only when you choose to record or upload a practice video or join an online session, and it saves files you download (such as invoices) to your phone. It has no advertising and no tracking.',
+        'Online payments are handled by Razorpay, and online sessions run on Daily.co video rooms; they receive only what is needed to take the payment or run the call. One-time sign-in codes are sent by WhatsApp or email.',
+        'Information is sent over encrypted connections and kept on the center’s own server. Invoices and clinical records are kept for as long as the law requires.',
+        'To see, correct or delete your information, or to withdraw consent, contact the center using the details on the contact page. To delete your portal and app account, see moonlightneurocare.com/policies/account-deletion.',
       ]),
       policy('terms', 'Website terms', [
         'Information on this website is general. It does not diagnose a child or replace an individual assessment by a qualified professional.',
@@ -673,6 +676,12 @@ export const PAGES = [
         'Online sessions run on a secure video link shared by the center. Sessions are not recorded unless you agree in advance.',
         'Joining details, time zone, fees and refund rules are confirmed when you book.',
       ]),
+      policy('account-deletion', 'Deleting your account', [
+        'You can ask for your Moonlight Neurocare portal and app account to be deleted at any time.',
+        'In the app or portal: sign in, open More, then Account & privacy (Account security for staff), and choose Delete my account. Or ask the center by phone, WhatsApp or email using the details on the contact page.',
+        'The center completes the request within 7 days and confirms by email. Your sign-in, password, phone number, signed-in devices and links to your child’s record are removed, and the account can no longer be used.',
+        'Some records must be kept by law or for your child’s care, such as invoices, payment receipts and clinical notes. They are kept with the center for the period the law requires and then deleted. To ask for any other information to be deleted, contact the center.',
+      ]),
       policy('consent', 'Understanding consent', [
         'Treatment, sharing with a school or another professional, messages, marketing, session recording and public image use are separate choices. You can say yes to some and no to others.',
         'You can withdraw consent at any time from the parent portal or by contacting the center. Saying no to publicity never affects your child’s access to therapy.',
@@ -681,7 +690,7 @@ export const PAGES = [
   },
 ];
 
-export const POLICY_IDS = ['privacy', 'terms', 'accessibility', 'child-safeguarding', 'complaints', 'cancellation', 'online-classes', 'consent'];
+export const POLICY_IDS = ['privacy', 'terms', 'accessibility', 'child-safeguarding', 'complaints', 'cancellation', 'online-classes', 'consent', 'account-deletion'];
 export const INFO_PATHS = {
   '/about': 'about',
   '/our-approach': 'our-approach',
