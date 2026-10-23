@@ -80,7 +80,9 @@ id -u "$APP_USER" >/dev/null 2>&1 || useradd --system --home-dir "$DATA_DIR" --s
 mkdir -p "$APP_DIR" "$STORAGE_DIR" "$LOG_DIR"
 if [[ $SRC != "$APP_DIR" ]]; then
   # Settings, build output and installed packages on the server are kept.
-  rsync -a --delete --exclude node_modules --exclude build --exclude 'build-*' --exclude .git --exclude __pycache__ \
+  # --chmod: files from a checkout made with a strict umask (e.g. 600) would otherwise reach the website unreadable
+  # by Nginx (403 for the logo, icons and manifest).
+  rsync -a --chmod=D755,F644 --delete --exclude node_modules --exclude build --exclude 'build-*' --exclude .git --exclude __pycache__ \
     --exclude backend/.env --exclude frontend/.env --exclude venv --exclude pw-browsers "$SRC"/ "$APP_DIR"/
 fi
 
@@ -131,6 +133,9 @@ rm -rf build-new
 as_app NODE_OPTIONS=--max-old-space-size=2048 CI=false BUILD_PATH=build-new yarn build
 cp build-new/index.html build-new/_app.html   # app shell for pages that have no saved HTML yet
 chown "$APP_USER:$APP_USER" build-new/_app.html
+# Nginx (www-data) must be able to read every file and enter every folder of the website.
+chmod -R go+rX build-new
+chmod go+rx "$APP_DIR" "$APP_DIR/frontend"
 # Swap in one step so visitors never see a half-written site.
 [[ -d build ]] && mv build build-old
 mv build-new build && rm -rf build-old
