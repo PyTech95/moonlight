@@ -59,15 +59,25 @@ PERMISSIONS['parent'] |= {'sharing:manage', 'team:read', 'team:contribute', 'tea
 PERMISSIONS['staff'] |= {'team:read', 'team:contribute', 'team:message', 'team:clinical', 'classes:read', 'classes:manage'}
 PERMISSIONS['admin'] |= {'team:read', 'team:contribute', 'team:message', 'team:clinical', 'schools:manage', 'classes:read', 'classes:manage',
                        'content:read', 'content:edit'}
+# Phase 4: child records, scheduling, billing.
+PERMISSIONS['admin'] |= {'children:manage', 'schedule:manage', 'billing:read', 'billing:update', 'attendance:update'}
+PERMISSIONS['staff'] |= {'schedule:own'}
+PERMISSIONS['parent'] |= {'billing:own'}
 PROFILE_PERMISSIONS = {
     'guardian': PERMISSIONS['parent'],
     'clinical': PERMISSIONS['staff'] | {'consents:read'},
-    'reception': {'children:read', 'appointments:read', 'enquiries:read', 'enquiries:update', 'requests:read', 'requests:update'},
-    'finance': {'billing:read', 'billing:update'},
+    'reception': {'children:read', 'appointments:read', 'enquiries:read', 'enquiries:update', 'requests:read', 'requests:update',
+                  'children:manage', 'schedule:manage', 'attendance:update', 'classes:read', 'billing:read'},
+    'finance': {'billing:read', 'billing:update', 'children:read', 'appointments:read'},
     'administrator': PERMISSIONS['admin'] | {'accounts:manage', 'consents:read', 'consents:request', 'operations:manage'},
     'school_coordinator': PERMISSIONS['school'],
     'school_teacher': PERMISSIONS['school'],
 }
+
+
+def can(p, action) -> bool:
+    """Permission check without side effects (for building menus and optional workspace sections)."""
+    return action in PROFILE_PERMISSIONS.get(p.get('access_profile'), PERMISSIONS.get(p.get('role'), set()))
 
 
 async def audit(p, action, resource_id, result='allowed'):
@@ -87,6 +97,10 @@ async def authorize(p, action, resource=None):
         raise HTTPException(403, 'This workspace does not have permission for that action.')
 
 
+def _center_wide(p):
+    return p.get('role') == 'admin' or p.get('access_profile') in {'administrator', 'reception', 'finance'}
+
+
 class ScopedRepo:
     """All operational reads/writes are tenant-scoped; child predicates are applied before pagination."""
     def __init__(self, p):
@@ -97,7 +111,7 @@ class ScopedRepo:
         query = {'org_id': self.p['org_id']}
         if self.p['role'] == 'school':
             query['id'] = {'$in': []}
-        if collection in {'children', 'appointments', 'activities', 'announcements', 'practice_videos', 'home_plans'} and self.p['role'] != 'admin':
+        if collection in {'children', 'appointments', 'activities', 'announcements', 'practice_videos', 'home_plans'} and not _center_wide(self.p):
             field = 'guardian_ids' if self.p['role'] == 'parent' else 'staff_ids'
             children = await db.children.find({'org_id': self.p['org_id'], field: self.p['id']}, {'_id': 0, 'id': 1}).to_list(1000)
             query['id' if collection == 'children' else 'child_id'] = {'$in': [c['id'] for c in children]}

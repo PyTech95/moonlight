@@ -14,6 +14,7 @@ api.interceptors.request.use((config) => {
 export const errorText = (error) => {
   const detail = error.response?.data?.detail;
   if (Array.isArray(detail)) return detail.map((item) => item.msg.replace('Value error, ', '')).join(' ');
+  if (detail && typeof detail === 'object' && detail.message) return detail.message;
   return typeof detail === 'string' ? detail : 'We couldn’t connect. Please try again.';
 };
 export const dateLabel = (value) =>
@@ -27,3 +28,7 @@ export const timeLabel = (value) =>
   new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit' }).format(
     new Date(value),
   );
+export const errorDetail = (error) => {
+  const detail = error.response?.data?.detail;
+  return detail && typeof detail === 'object' && !Array.isArray(detail) ? detail : null;
+};

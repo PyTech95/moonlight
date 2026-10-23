@@ -25,6 +25,9 @@ from classes import router as classes_router
 from cms import router as cms_router
 from site_build import router as site_build_router
 from cron import router as cron_router, startup_definitions
+from children_admin import router as children_admin_router
+from scheduling import router as scheduling_router
+from billing import router as billing_router
 from jobs import notification_worker
 from media_processing import media_worker
 from migrations import up as migrate_up
@@ -66,6 +69,19 @@ async def lifespan(app):
     for collection in ['school_links', 'school_assignments', 'support_goals', 'goal_contributions', 'classroom_observations', 'team_messages', 'team_meetings', 'team_tasks']:
         await db[collection].create_index([('org_id', 1), ('child_id', 1)])
     await db.notification_jobs.create_index([('org_id', 1), ('status', 1), ('meta.child_id', 1), ('meta.school_id', 1)])
+    # Phase 4: scheduling and billing
+    await db.appointments.create_index([('org_id', 1), ('starts_at', 1)])
+    await db.appointments.create_index([('org_id', 1), ('therapist_id', 1), ('starts_at', 1)])
+    await db.appointments.create_index([('org_id', 1), ('child_id', 1), ('starts_at', 1)])
+    await db.appointments.create_index([('org_id', 1), ('billing.invoice_id', 1)])
+    await db.otp_challenges.create_index('token_hash', unique=True)
+    await db.otp_challenges.create_index('expires_at', expireAfterSeconds=0)
+    await db.users.create_index([('org_id', 1), ('phone', 1)])
+    for collection in ['invoices', 'fee_items', 'package_plans', 'child_packages']:
+        await db[collection].create_index([('org_id', 1), ('id', 1)], unique=True)
+    await db.invoices.create_index([('org_id', 1), ('child_id', 1), ('created_at', -1)])
+    await db.invoices.create_index('payment_link.id')
+    await db.child_packages.create_index([('org_id', 1), ('child_id', 1), ('status', 1)])
     try:
         init_storage()
     except Exception as exc:
@@ -82,7 +98,7 @@ async def lifespan(app):
 
 app = FastAPI(title='Moonlight Neurocare', lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_credentials=True,
-                   allow_methods=['GET', 'POST', 'PATCH', 'DELETE'], allow_headers=['Content-Type', 'X-CSRF-Token', 'Idempotency-Key'])
+                   allow_methods=['GET', 'POST', 'PATCH', 'PUT', 'DELETE'], allow_headers=['Content-Type', 'X-CSRF-Token', 'Idempotency-Key'])
 
 
 @app.middleware('http')
@@ -118,5 +134,6 @@ app.include_router(home_plans_router, prefix='/api')
 app.include_router(access_router, prefix='/api')
 app.include_router(consents_router, prefix='/api')
 app.include_router(operations_router, prefix='/api')
-for extra in [team_router, documents_router, sharing_router, school_portal_router, schools_admin_router, attachments_router, digests_router, classes_router, cron_router, cms_router, site_build_router]:
+for extra in [team_router, documents_router, sharing_router, school_portal_router, schools_admin_router, attachments_router, digests_router, classes_router, cron_router, cms_router, site_build_router,
+              children_admin_router, scheduling_router, billing_router]:
     app.include_router(extra, prefix='/api')

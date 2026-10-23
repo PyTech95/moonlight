@@ -49,7 +49,7 @@ step "System packages"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
 apt-get install -y -q python3 python3-venv python3-pip nginx clamav clamav-freshclam ffmpeg certbot \
-  python3-certbot-nginx curl gnupg rsync ca-certificates
+  python3-certbot-nginx curl gnupg rsync ca-certificates fonts-dejavu-core
 systemctl enable --now clamav-freshclam   # keeps virus definitions current (first download takes a few minutes)
 
 if ! swapon --show | grep -q . && [[ $(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo) -lt 3500 ]]; then
@@ -229,10 +229,11 @@ fi
 step "Scheduled jobs and backups"
 chmod +x "$APP_DIR/deploy/backup.sh" "$APP_DIR/deploy/cron-job.sh"
 cat > /etc/cron.d/moonlight <<EOF
-# Moonlight Neurocare. Times are UTC: 21:45 = 03:15 IST, Sat 03:30 = Sat 09:00 IST.
+# Moonlight Neurocare. Times are UTC: 21:45 = 03:15 IST, Sat 03:30 = Sat 09:00 IST, 12:30 = 18:00 IST (session reminders).
 SHELL=/bin/bash
 45 21 * * * $APP_USER $APP_DIR/deploy/cron-job.sh virus-definitions >> $LOG_DIR/cron.log 2>&1
 30 3 * * 6  $APP_USER $APP_DIR/deploy/cron-job.sh school-digest >> $LOG_DIR/cron.log 2>&1
+30 12 * * * $APP_USER $APP_DIR/deploy/cron-job.sh daily-care >> $LOG_DIR/cron.log 2>&1
 15 22 * * * $APP_USER HOME=$DATA_DIR PLAYWRIGHT_BROWSERS_PATH=$BROWSERS $PRERENDER >> $LOG_DIR/prerender.log 2>&1
 30 21 * * * root $APP_DIR/deploy/backup.sh >> $LOG_DIR/backup.log 2>&1
 EOF

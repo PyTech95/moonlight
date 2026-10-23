@@ -97,3 +97,4 @@ credentials.json
 # Local upload storage and recovery exports (contain personal data)
 backend/storage-data/
 backend/recovered_enquiries.csv
+.claude/

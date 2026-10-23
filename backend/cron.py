@@ -9,7 +9,15 @@ from digests import generate_all_digests
 from virus_definitions import refresh_and_record
 
 router = APIRouter()
-JOBS = {'virus-definitions': lambda: refresh_and_record('cron'), 'school-digest': generate_all_digests}
+async def _daily_care():
+    from billing import expire_packages
+    from scheduling import send_reminders
+    expired = await expire_packages()
+    reminded = await send_reminders()
+    return {'packages_expired': expired, 'reminders_queued': reminded}
+
+
+JOBS = {'virus-definitions': lambda: refresh_and_record('cron'), 'school-digest': generate_all_digests, 'daily-care': _daily_care}
 
 
 async def _authorized(request: Request):

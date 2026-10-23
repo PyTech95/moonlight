@@ -21,9 +21,10 @@ THERAPY_SLUGS = {'speech-therapy', 'occupational-therapy', 'aba-therapy', 'senso
 def _sanitize_settings(doc):
     if not doc:
         return doc
-    clean = {k: v for k, v in doc.items() if k not in ('smtp_app_password', 'wa_access_token')}
+    clean = {k: v for k, v in doc.items() if k not in ('smtp_app_password', 'wa_access_token', 'daily_api_key', 'razorpay')}
     clean['smtp_password_set'] = bool(doc.get('smtp_app_password'))
     clean['wa_token_set'] = bool(doc.get('wa_access_token'))
+    clean['daily_key_set'] = bool(doc.get('daily_api_key'))
     return clean
 
 
@@ -114,6 +115,8 @@ class WhatsappInput(Input):
     wa_template_name: str = Field(default='', max_length=120)
     wa_template_language: str = Field(default='en_US', max_length=12)
     wa_recipient: str = Field(default='', max_length=25)
+    wa_otp_template: str = Field(default='', max_length=120)
+    wa_otp_language: str = Field(default='en', max_length=12)
 
 
 @router.patch('/admin/whatsapp', response_model=Payload)
@@ -121,7 +124,8 @@ async def update_whatsapp(data: WhatsappInput, p=Depends(principal)):
     await authorize(p, 'settings:update')
     changes = {'wa_enabled': data.wa_enabled, 'wa_phone_number_id': data.wa_phone_number_id.strip(),
                'wa_template_name': data.wa_template_name.strip(), 'wa_template_language': (data.wa_template_language or 'en_US').strip(),
-               'wa_recipient': data.wa_recipient.strip(), 'wa_api_version': 'v26.0'}
+               'wa_recipient': data.wa_recipient.strip(), 'wa_api_version': 'v26.0',
+               'wa_otp_template': data.wa_otp_template.strip(), 'wa_otp_language': (data.wa_otp_language or 'en').strip()}
     token = data.wa_access_token.strip()
     if token:
         changes['wa_access_token'] = encrypt_secret(token)
@@ -144,6 +148,36 @@ async def test_whatsapp(p=Depends(principal)):
         raise HTTPException(400, f'Could not send the WhatsApp test. Check the IDs, token and that the template is approved with 3 body variables. ({type(exc).__name__})')
     await audit(p, 'settings:update', 'whatsapp:test')
     return {'message': 'Test WhatsApp message sent. Check the center phone.'}
+
+
+class VideoInput(Input):
+    daily_domain: str = Field(default='', max_length=120)
+    daily_api_key: str = Field(default='', max_length=200)
+
+
+@router.patch('/admin/video', response_model=Payload)
+async def update_video(data: VideoInput, p=Depends(principal)):
+    await authorize(p, 'settings:update')
+    domain = data.daily_domain.strip().rstrip('/')
+    if domain and not domain.startswith('http'):
+        domain = f'https://{domain}'
+    if domain and not domain.endswith('.daily.co'):
+        raise HTTPException(422, 'Use your Daily.co domain, for example https://moonlight.daily.co')
+    changes = {'daily_domain': domain}
+    if data.daily_api_key.strip():
+        changes['daily_api_key'] = encrypt_secret(data.daily_api_key.strip())
+    await db.settings.update_one({'org_id': p['org_id']}, {'$set': changes, '$inc': {'version': 1}})
+    await audit(p, 'settings:update', 'video')
+    return await _return_settings(p['org_id'])
+
+
+@router.post('/admin/video/test', response_model=Payload)
+async def test_video(p=Depends(principal)):
+    await authorize(p, 'settings:update')
+    from video import test_connection
+    result = await test_connection(p['org_id'])
+    await audit(p, 'settings:update', 'video:test')
+    return result
 
 
 @router.get('/admin/audit', response_model=Payload)

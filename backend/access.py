@@ -7,6 +7,7 @@ from pydantic import EmailStr, Field
 
 from config import APP_MODE, WEB_ORIGIN, Input, Payload, db, now, uid
 from jobs import enqueue_email
+from center import normalize_phone
 from security import ScopedRepo, audit, authorize, digest, principal
 
 
@@ -20,6 +21,7 @@ class InvitationInput(Input):
     access_profile: Literal['guardian', 'clinical', 'reception', 'finance', 'administrator']
     child_ids: list[str] = Field(default_factory=list, max_length=50)
     expires_hours: int = Field(default=72, ge=1, le=168)
+    phone: str = Field(default='', max_length=25)
 
 
 class DeactivateInput(Input):
@@ -36,14 +38,14 @@ async def access_overview(p=Depends(principal)):
     return {'users': users, 'invitations': invites, 'grants': grants}
 
 
-@router.post('/admin/invitations', response_model=Payload, status_code=201)
-async def invite_user(data: InvitationInput, p=Depends(principal)):
-    await authorize(p, 'accounts:manage')
-    email = str(data.email).lower()
+async def create_invitation(p: dict, email: str, display_name: str, access_profile: str, child_ids: list[str],
+                            expires_hours: int = 72, phone: str = '') -> dict:
+    """Single-use invitation shared by the Accounts page and a child's record."""
+    email = email.lower()
     if await db.users.find_one({'org_id': p['org_id'], 'email': email, 'active': True}, {'_id': 0, 'id': 1}):
         raise HTTPException(409, 'An active account already uses this email.')
-    child_ids = list(dict.fromkeys(data.child_ids))
-    if data.access_profile in {'guardian', 'clinical'}:
+    child_ids = list(dict.fromkeys(child_ids))
+    if access_profile in {'guardian', 'clinical'}:
         found = await db.children.find({'org_id': p['org_id'], 'id': {'$in': child_ids}}, {'_id': 0, 'id': 1}).to_list(100)
         if len(found) != len(child_ids) or not child_ids:
             raise HTTPException(422, 'Select at least one valid child for guardian or clinical access.')
@@ -51,21 +53,29 @@ async def invite_user(data: InvitationInput, p=Depends(principal)):
         child_ids = []
     await db.invitations.update_many({'org_id': p['org_id'], 'email': email, 'used_at': {'$exists': False}}, {'$set': {'cancelled_at': now()}})
     raw = secrets.token_urlsafe(40)
-    record = {'id': uid(), 'org_id': p['org_id'], 'email': email, 'display_name': data.display_name,
-              'role': PROFILE_ROLE[data.access_profile], 'access_profile': data.access_profile, 'child_ids': child_ids,
+    record = {'id': uid(), 'org_id': p['org_id'], 'email': email, 'display_name': display_name,
+              'role': PROFILE_ROLE[access_profile], 'access_profile': access_profile, 'child_ids': child_ids, 'phone': normalize_phone(phone),
               'token_hash': digest(raw), 'created_by': p['id'], 'created_at': now(),
-              'expires_at': datetime.now(timezone.utc) + timedelta(hours=data.expires_hours)}
+              'expires_at': datetime.now(timezone.utc) + timedelta(hours=expires_hours)}
     await db.invitations.insert_one(record.copy())
     link = f'{WEB_ORIGIN}/accept-invite?token={raw}'
     job = await enqueue_email(p['org_id'], email, 'Your Moonlight Neurocare portal invitation',
-                              f'You have been invited to the Moonlight Neurocare portal.\n\nUse this single-use link within {data.expires_hours} hours:\n{link}\n\nIf you were not expecting this invitation, contact the center.',
+                              f'You have been invited to the Moonlight Neurocare portal.\n\nUse this single-use link within {expires_hours} hours:\n{link}\n\n'
+                              'You can also use the Moonlight Neurocare app with the same email and password.\n\n'
+                              'If you were not expecting this invitation, contact the center.',
                               f'invitation:{record["id"]}')
     await audit(p, 'accounts:invite', record['id'])
-    result = {key: record[key] for key in ['id', 'email', 'display_name', 'role', 'access_profile', 'child_ids', 'created_at', 'expires_at']}
+    result = {key: record[key] for key in ['id', 'email', 'display_name', 'role', 'access_profile', 'child_ids', 'created_at', 'expires_at', 'phone']}
     result['delivery_status'] = job['status']
     if APP_MODE == 'demo':
         result['demo_invitation_token'] = raw
     return result
+
+
+@router.post('/admin/invitations', response_model=Payload, status_code=201)
+async def invite_user(data: InvitationInput, p=Depends(principal)):
+    await authorize(p, 'accounts:manage')
+    return await create_invitation(p, str(data.email), data.display_name, data.access_profile, data.child_ids, data.expires_hours, data.phone)
 
 
 @router.post('/admin/users/{user_id}/deactivate', response_model=Payload)
