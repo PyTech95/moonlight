@@ -1,0 +1,21 @@
+{
+  "name": "moonlight-neurocare-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Moonlight Neurocare Android app: the portal for parents, therapists, schools and admin in a native shell.",
+  "scripts": {
+    "cap": "cap",
+    "configure": "node scripts/configure.mjs",
+    "sync": "node scripts/configure.mjs && cap sync android",
+    "assets": "capacitor-assets generate --android --iconBackgroundColor '#123f46' --iconBackgroundColorDark '#123f46' --splashBackgroundColor '#123f46' --splashBackgroundColorDark '#123f46'"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/splash-screen": "8.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.5.3"
+  }
+}

@@ -5,11 +5,11 @@ import logging
 import httpx
 from datetime import datetime, timezone
 from typing import Literal
-from fastapi import APIRouter, Depends, Header, HTTPException, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from pydantic import Field, field_validator, EmailStr
 from pymongo.errors import DuplicateKeyError
-from config import db, Input, Payload, uid, now
-from security import sandbox, rate_limit, digest
+from config import db, Input, Payload, uid, now, APP_MODE, IS_DEMO
+from security import sandbox, rate_limit, digest, client_ip
 from seed import SETTINGS
 from storage import get_object, APP_NAME
 from emailer import send_email
@@ -18,7 +18,8 @@ from whatsapp import send_whatsapp_template
 router = APIRouter()
 NOTIFY_FIELDS = ('smtp_app_password', 'smtp_username', 'notify_email', 'notify_enabled', 'smtp_host', 'smtp_port',
                  'wa_enabled', 'wa_phone_number_id', 'wa_access_token', 'wa_template_name', 'wa_template_language', 'wa_recipient', 'wa_api_version')
-SERVICES = ['Speech Therapy', 'Occupational Therapy', 'ABA Therapy', 'Sensory Integration Therapy', 'Yoga Therapy', 'Neurodevelopmental Therapy', 'Remedial Therapy', 'Music & Play Therapy', 'I am not sure']
+SERVICES = ['Speech Therapy', 'Occupational Therapy', 'ABA Therapy', 'Sensory Integration Therapy', 'Yoga Therapy', 'Neurodevelopmental Therapy', 'Remedial Therapy', 'Music & Play Therapy',
+            'Home Tutor (Special Educator)', 'Therapy Home Visit', 'Indoor Sports', 'I am not sure']
 
 
 class EnquiryInput(Input):
@@ -43,7 +44,8 @@ class EnquiryInput(Input):
     @field_validator('service')
     @classmethod
     def service_name(cls, value):
-        if value not in SERVICES:
+        # The full check happens in the endpoint, because the admin can add therapies from the CMS.
+        if not value or len(value) > 120:
             raise ValueError('Choose a listed interest.')
         return value
 
@@ -51,21 +53,21 @@ class EnquiryInput(Input):
 @router.get('/public/settings', response_model=Payload)
 async def settings(space=Depends(sandbox)):
     record = await db.settings.find_one({'org_id': space['org_id']}, {'_id': 0, 'org_id': 0, **{f: 0 for f in NOTIFY_FIELDS}})
-    return record or SETTINGS
+    return {**(record or SETTINGS), 'app_mode': APP_MODE}
 
 
 @router.get('/public/media/{path:path}')
 async def media(path: str, space=Depends(sandbox)):
     if not path.startswith(APP_NAME + '/'):
         raise HTTPException(404, 'Not found.')
-    settings_doc = await db.settings.find_one({'org_id': space['org_id']}, {'_id': 0})
-    if not settings_doc:
-        raise HTTPException(404, 'Not found.')
+    settings_doc = await db.settings.find_one({'org_id': space['org_id']}, {'_id': 0}) or {}
+    # Everything the admin publishes (site images, CMS images) lives under <app>/<org>/public/.
+    # Private files (practice videos, documents, attachments, backups) use other prefixes and are never served here.
     allowed = set(settings_doc.get('hero_images', []))
     allowed.update(value for value in [settings_doc.get('director_photo'), settings_doc.get('team_photo')] if value)
     allowed.update(member.get('photo') for member in settings_doc.get('team', []) if member.get('photo'))
     allowed.update((settings_doc.get('therapy_images') or {}).values())
-    if path not in allowed:
+    if path not in allowed and not (path.startswith(f"{APP_NAME}/{space['org_id']}/public/") and '..' not in path):
         raise HTTPException(404, 'Not found.')
     try:
         data, content_type = get_object(path)
@@ -166,9 +168,13 @@ async def _notify_new_enquiry(org_id, record, data):
 
 
 @router.post('/enquiries', response_model=Payload, status_code=201)
-async def enquiry(data: EnquiryInput, space=Depends(sandbox), idempotency_key: str = Header(..., max_length=80)):
+async def enquiry(data: EnquiryInput, request: Request, space=Depends(sandbox), idempotency_key: str = Header(..., max_length=80)):
     if not data.consent:
         raise HTTPException(422, 'Please consent to being contacted about this request.')
+    content = await db.site_content.find_one({'org_id': space['org_id']}, {'_id': 0, 'collections.therapies': 1}) or {}
+    cms_titles = {str(t.get('title', '')) for t in (content.get('collections') or {}).get('therapies') or []}
+    if data.service not in set(SERVICES) | cms_titles:
+        raise HTTPException(422, 'Choose a listed interest.')
     if data.contact_preference == 'Email' and not data.email:
         raise HTTPException(422, 'An email address is needed for email contact.')
     if len(idempotency_key) < 16:
@@ -179,14 +185,15 @@ async def enquiry(data: EnquiryInput, space=Depends(sandbox), idempotency_key: s
         if existing['fingerprint'] != fingerprint:
             raise HTTPException(409, 'This request identifier was already used. Start a new request.')
         return {'id': existing['id'], 'reference': existing['reference'], 'status': 'Request received', 'duplicate': True}
-    await rate_limit('enquiry:' + space['org_id'], 10)
+    # Per visitor, not per center: one noisy client must not block every family's enquiry.
+    await rate_limit('enquiry:' + space['org_id'] + ':' + digest(client_ip(request)), 10)
     record_id = uid()
     # Enquiry + one admissions task + outbox intent commit atomically in ONE Mongo document.
     record = {**data.model_dump(), 'id': record_id, 'org_id': space['org_id'], 'idempotency_key': idempotency_key,
               'fingerprint': fingerprint, 'reference': 'MN-' + record_id[:8].upper(), 'stage': 'New', 'version': 1,
               'created_at': now(), 'consent_record': {'version': 'contact-v1', 'scope': 'Assessment enquiry contact only', 'signed_at': now(), 'signer': data.guardian_name},
               'task': {'id': uid(), 'title': 'Review assessment enquiry', 'status': 'Open'},
-              'notification': {'id': uid(), 'channel': data.contact_preference, 'status': 'Not Configured', 'retryable': True, 'attempts': 0}, 'synthetic_environment': True}
+              'notification': {'id': uid(), 'channel': data.contact_preference, 'status': 'Not Configured', 'retryable': True, 'attempts': 0}, 'synthetic_environment': IS_DEMO}
     try:
         await db.enquiries.insert_one(record.copy())
     except DuplicateKeyError:

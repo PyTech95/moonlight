@@ -3,6 +3,7 @@ import io
 import json
 import logging
 import os
+import shutil
 import subprocess
 import tempfile
 import uuid
@@ -17,14 +18,36 @@ from storage import APP_NAME, get_object, put_object
 logger = logging.getLogger('media-worker')
 
 
+# MALWARE_SCAN: required (default: refuse uploads when ClamAV can't scan) | optional (scan when possible,
+# otherwise log a warning and accept) | off (never scan; not recommended for parent/staff uploads).
+SCAN_MODE = os.environ.get('MALWARE_SCAN', 'required').strip().lower()
+
+
+class ScannerUnavailable(RuntimeError):
+    """Raised when a required scan can't run. Callers turn it into a clear 503 message."""
+
+
 def scan_path(path: str):
-    from virus_definitions import ensure_definitions_sync
-    ensure_definitions_sync()
-    result = subprocess.run(['/usr/bin/clamscan', '--no-summary', path], capture_output=True, text=True, timeout=180)
+    if SCAN_MODE == 'off':
+        return
+    from virus_definitions import definitions_ready, refresh_in_background
+    clamscan = shutil.which('clamscan') or '/usr/bin/clamscan'
+    problem = ''
+    if not os.path.exists(clamscan):
+        problem = 'The virus scanner (ClamAV) is not installed on the server, so uploads are paused. Ask the developer to install ClamAV.'
+    elif not definitions_ready():
+        refresh_in_background()  # never block an upload request on a multi-minute download
+        problem = 'The virus scanner is downloading its definitions. Please try again in a few minutes.'
+    if problem:
+        if SCAN_MODE == 'optional':
+            logger.warning('Upload accepted without a malware scan (MALWARE_SCAN=optional; ClamAV not ready).')
+            return
+        raise ScannerUnavailable(problem)
+    result = subprocess.run([clamscan, '--no-summary', path], capture_output=True, text=True, timeout=180)
     if result.returncode == 1:
         raise ValueError('Malware scan rejected this file.')
     if result.returncode != 0:
-        raise RuntimeError('Malware scanner is unavailable.')
+        raise ScannerUnavailable('The virus scanner could not check this file. Please try again in a minute.')
 
 
 def validate_and_normalize_image(data: bytes) -> tuple[bytes, int, int]:

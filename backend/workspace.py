@@ -1,9 +1,10 @@
+from datetime import datetime, timedelta, timezone
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import Field
 from pymongo.errors import DuplicateKeyError
-from config import db, Input, Payload, uid, now
-from security import principal, ScopedRepo, authorize, audit
+from config import db, Input, Payload, uid, now, IS_DEMO
+from security import principal, ScopedRepo, authorize, audit, can
 from home_plans import serialize_plan
 
 router = APIRouter()
@@ -14,13 +15,24 @@ async def workspace(role: Literal['parent', 'staff', 'admin'], p=Depends(princip
     if role not in p['roles']:
         raise HTTPException(403, 'You do not have access to this workspace.')
     repo = ScopedRepo(p)
+
+    async def optional(collection, action, fields=None, limit=100):
+        # Reception and finance staff use the care-team workspace without clinical permissions.
+        return await repo.list(collection, action, fields, limit=limit) if can(p, action) else []
+
     fields = ['id', 'name', 'initials', 'age_label'] if role == 'admin' else ['id', 'name', 'initials', 'age_label', 'communication', 'goals', 'shared_summary']
-    children = await repo.list('children', 'children:read', fields)
-    appointments = await repo.list('appointments', 'appointments:read')
+    children = [c for c in await optional('children', 'children:read', fields + ['status'], limit=1000) if c.get('status') != 'archived']
+    appointments = []
+    if can(p, 'appointments:read'):
+        # The workspace shows a rolling window; the Schedule page loads any week on demand.
+        current = datetime.now(timezone.utc)
+        query = await repo.scope('appointments', 'appointments:read')
+        query.update({'status': {'$ne': 'Cancelled'}, 'starts_at': {'$gte': (current - timedelta(days=14)).isoformat(), '$lte': (current + timedelta(days=60)).isoformat()}})
+        appointments = await db.appointments.find(query, {'_id': 0}).sort('starts_at', 1).to_list(1500)
     video_fields = ['id', 'child_id', 'child_name', 'therapy', 'title', 'note', 'steps', 'session_date',
                     'duration_seconds', 'therapist_name', 'created_at', 'published_at', 'version', 'read_by',
                     'processing_status', 'processing_error', 'thumbnail_path', 'caption_path', 'transcript']
-    practice_videos = await repo.list('practice_videos', 'practice_videos:read', video_fields)
+    practice_videos = await optional('practice_videos', 'practice_videos:read', video_fields)
     practice_videos = sorted(practice_videos, key=lambda x: x.get('published_at', ''), reverse=True)
     for video in practice_videos:
         read_by = video.pop('read_by', [])
@@ -30,23 +42,23 @@ async def workspace(role: Literal['parent', 'staff', 'admin'], p=Depends(princip
         video['captions_available'] = bool(video.pop('caption_path', ''))
     plan_fields = ['id', 'child_id', 'child_name', 'week_start', 'week_end', 'title', 'note', 'why_this_helps',
                    'items', 'status', 'author_name', 'created_at', 'published_at', 'updated_at', 'version', 'read_by', 'responses']
-    home_plans = await repo.list('home_plans', 'home_plans:read', plan_fields)
+    home_plans = await optional('home_plans', 'home_plans:read', plan_fields)
     home_plans = [serialize_plan(plan, p) for plan in sorted(home_plans, key=lambda x: x.get('week_start', ''), reverse=True)]
     video_unread = sum(not video['viewed'] for video in practice_videos) if role == 'parent' else 0
     plan_unread = sum(not plan['viewed'] for plan in home_plans) if role == 'parent' else 0
     data = {'children': children, 'appointments': sorted(appointments, key=lambda x: x['starts_at']), 'activities': [], 'announcements': [], 'requests': [],
             'practice_videos': practice_videos, 'home_plans': home_plans, 'video_unread': video_unread, 'plan_unread': plan_unread,
             'practice_unread': video_unread + plan_unread,
-            'demo': True}
+            'demo': IS_DEMO}
     if role != 'admin':
-        data['activities'] = await repo.list('activities', 'activities:read')
-        data['announcements'] = await repo.list('announcements', 'announcements:read')
+        data['activities'] = await optional('activities', 'activities:read')
+        data['announcements'] = await optional('announcements', 'announcements:read')
         data['requests'] = await db.requests.find({'org_id': p['org_id'], 'created_by': p['id']}, {'_id': 0}).to_list(100)
     else:
         enquiries = await repo.list('enquiries', 'enquiries:read')
         requests = await repo.list('requests', 'requests:read')
         data.update({'enquiries': enquiries, 'requests': requests,
-                     'stats': {'sessions': len(appointments), 'enquiries': len(enquiries), 'pending_requests': sum(r['status'] == 'Pending' for r in requests), 'attendance_unrecorded': sum(a['attendance'] == 'Not recorded' for a in appointments)}})
+                     'stats': {'sessions': len(appointments), 'enquiries': len(enquiries), 'pending_requests': sum(r['status'] == 'Pending' for r in requests), 'attendance_unrecorded': sum(a.get('attendance') == 'Not recorded' and a['starts_at'] < now() for a in appointments)}})
     return data
 
 
@@ -100,14 +112,3 @@ async def appointment_request(data: RequestInput, p=Depends(principal)):
         raise HTTPException(409, 'A request for this session has already been submitted.')
     await audit(p, 'requests:create', key)
     return record
-
-
-class AttendanceInput(Input):
-    attendance: Literal['Present', 'Absent', 'Not recorded']
-    version: int = Field(ge=1)
-
-
-@router.patch('/appointments/{appointment_id}/attendance', response_model=Payload)
-async def attendance(appointment_id: str, data: AttendanceInput, p=Depends(principal)):
-    return await ScopedRepo(p).update('appointments', 'attendance:update', appointment_id,
-                                     {'attendance': data.attendance, 'attendance_reviewer': p['id'], 'attendance_updated_at': now()}, data.version)

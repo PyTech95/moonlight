@@ -1,3 +1,4 @@
+import logging
 import secrets
 from datetime import datetime, timezone, timedelta
 from typing import Literal
@@ -10,12 +11,14 @@ from pymongo import ReturnDocument
 
 from config import APP_MODE, WEB_ORIGIN, Input, Payload, db, now, uid
 from jobs import enqueue_email
-from security import audit, cookie, digest, principal, rate_limit, sandbox
+from security import audit, client_ip, cookie, digest, principal, rate_limit, sandbox
 from seed import seed_demo
 from vault import decrypt_secret, encrypt_secret
 
 
 router = APIRouter()
+# Parents mostly use the phone app, so they stay signed in for 30 days; staff and admin (2-step) for 12 hours.
+SESSION_HOURS = {'parent': 24 * 30, 'school': 24 * 7, 'staff': 12, 'admin': 12}
 
 
 class DemoInput(Input):
@@ -71,11 +74,11 @@ async def start_session(user: dict, request: Request, response: Response, mfa_ve
         'id': uid(), 'token_hash': digest(raw), 'user_id': user['id'], 'org_id': user['org_id'], 'csrf': csrf,
         'security_version': user.get('security_version', 1), 'mfa_verified': mfa_verified or not user.get('mfa_required'),
         'created_at': now(), 'last_seen_at': now(), 'client_label': request.headers.get('user-agent', 'Unknown device')[:180],
-        'ip_hash': digest(request.client.host if request.client else 'unknown'),
-        'expires_at': datetime.now(timezone.utc) + timedelta(hours=8),
+        'ip_hash': digest(client_ip(request)),
+        'expires_at': datetime.now(timezone.utc) + timedelta(hours=SESSION_HOURS.get(user.get('role'), 12)),
     }
     await db.sessions.insert_one(record.copy())
-    cookie(response, 'mnc_session', raw, 8 * 3600)
+    cookie(response, 'mnc_session', raw, SESSION_HOURS.get(user.get('role'), 12) * 3600)
     await audit(user, 'auth:login', user['id'])
     return _user_payload(user, csrf)
 
@@ -104,7 +107,7 @@ async def demo(data: DemoInput, request: Request, response: Response, space=Depe
 
 @router.post('/auth/login', response_model=Payload)
 async def login(data: LoginInput, request: Request, response: Response, space=Depends(sandbox)):
-    identifier = digest(f'{request.client.host if request.client else "unknown"}:{str(data.email).lower()}')
+    identifier = digest(f'{client_ip(request)}:{str(data.email).lower()}')
     await rate_limit('login:' + identifier, 8)
     user = await _find_login_user(data.email, space['org_id'])
     try:
@@ -168,6 +171,7 @@ async def accept_invitation(data: InviteAcceptInput, request: Request, response:
         'password_hash': bcrypt.hashpw(data.password.encode(), bcrypt.gensalt()).decode(), 'active': True,
         'mfa_required': invitation['access_profile'] in {'clinical', 'reception', 'finance', 'administrator'},
         'mfa_enabled': False, 'security_version': 1, 'created_at': now(), 'invitation_id': invitation['id'],
+        'phone': invitation.get('phone', ''),
     }
     if invitation['role'] == 'school':
         user.update({'school_id': invitation['school_id'], 'school_role': invitation['school_role']})
@@ -185,7 +189,7 @@ async def accept_invitation(data: InviteAcceptInput, request: Request, response:
 
 @router.post('/auth/forgot-password', response_model=Payload)
 async def forgot_password(data: ForgotInput, request: Request, space=Depends(sandbox)):
-    await rate_limit('recovery:' + digest(f'{request.client.host if request.client else "unknown"}:{str(data.email).lower()}'), 5)
+    await rate_limit('recovery:' + digest(f'{client_ip(request)}:{str(data.email).lower()}'), 5)
     user = await _find_login_user(data.email, space['org_id'])
     raw = ''
     if user:
@@ -282,3 +286,90 @@ async def logout(response: Response, p=Depends(principal)):
     await db.sessions.delete_one({'token_hash': p['session_hash']})
     response.delete_cookie('mnc_session', path='/', secure=True, httponly=True, samesite='lax')
     return {'message': 'Signed out.'}
+
+# ---------- one-time code sign-in for parents (WhatsApp or email) ----------
+
+class OtpRequestInput(Input):
+    identifier: str = Field(min_length=5, max_length=120)
+
+
+class OtpVerifyInput(Input):
+    challenge_token: str = Field(min_length=32, max_length=500)
+    code: str = Field(min_length=4, max_length=10)
+
+
+def _whatsapp_otp_ready(settings: dict) -> bool:
+    return bool(settings and settings.get('wa_enabled') and settings.get('wa_phone_number_id') and settings.get('wa_access_token') and settings.get('wa_otp_template'))
+
+
+@router.get('/auth/options', response_model=Payload)
+async def login_options(space=Depends(sandbox)):
+    settings = await db.settings.find_one({'org_id': space['org_id']}, {'_id': 0}) or {}
+    email_ready = bool(settings.get('smtp_username') and settings.get('smtp_app_password'))
+    return {'otp': email_ready or _whatsapp_otp_ready(settings), 'otp_whatsapp': _whatsapp_otp_ready(settings), 'otp_email': email_ready}
+
+
+@router.post('/auth/otp/request', response_model=Payload)
+async def request_otp(data: OtpRequestInput, request: Request, space=Depends(sandbox)):
+    from center import normalize_phone
+    from whatsapp import send_whatsapp_template
+    identifier = data.identifier.strip().lower()
+    by_email = '@' in identifier
+    if not by_email:
+        try:
+            identifier = normalize_phone(identifier)
+        except HTTPException:
+            raise HTTPException(422, 'Enter your registered email or mobile number.')
+    await rate_limit('otp:' + digest(f'{client_ip(request)}:{identifier}'), 5)
+    await rate_limit('otp-id:' + digest(identifier), 8)
+    query = {'active': True, 'role': 'parent', ('email' if by_email else 'phone'): identifier}
+    if APP_MODE == 'demo':
+        query['org_id'] = space['org_id']
+    users = await db.users.find(query, {'_id': 0}).limit(2).to_list(2)
+    user = users[0] if len(users) == 1 else None
+    raw = secrets.token_urlsafe(40)
+    code = f'{secrets.randbelow(1_000_000):06d}'
+    challenge = {'id': uid(), 'token_hash': digest(raw), 'code_hash': digest(f'{raw}:{code}'), 'user_id': user['id'] if user else '',
+                 'org_id': user['org_id'] if user else space['org_id'], 'attempts': 0, 'channel': '', 'created_at': now(),
+                 'expires_at': datetime.now(timezone.utc) + timedelta(minutes=10)}
+    if user:
+        settings = await db.settings.find_one({'org_id': user['org_id']}, {'_id': 0}) or {}
+        sent = False
+        if user.get('phone') and _whatsapp_otp_ready(settings) and (not by_email or not user.get('email')):
+            try:
+                await send_whatsapp_template(settings, [code], to=user['phone'], template_name=settings['wa_otp_template'],
+                                             language=settings.get('wa_otp_language') or 'en', button_text=code)
+                challenge['channel'], sent = 'whatsapp', True
+            except Exception as exc:
+                logging.getLogger('otp').warning('WhatsApp OTP failed: %s', type(exc).__name__)
+        if not sent and user.get('email'):
+            await enqueue_email(user['org_id'], user['email'], f'{code} is your Moonlight sign-in code',
+                                f'Your Moonlight Neurocare sign-in code is {code}.\n\nIt works once, for 10 minutes. If you did not ask for it, ignore this email.',
+                                f"otp:{challenge['id']}")
+            challenge['channel'] = 'email'
+        await audit(user, 'auth:otp-requested', user['id'])
+    await db.otp_challenges.insert_one(challenge)
+    result = {'challenge_token': raw, 'message': 'If this email or number belongs to a parent account, a 6-digit code is on its way by WhatsApp or email.'}
+    if APP_MODE == 'demo' and user:
+        result['demo_code'] = code
+    return result
+
+
+@router.post('/auth/otp/verify', response_model=Payload)
+async def verify_otp(data: OtpVerifyInput, request: Request, response: Response):
+    challenge = await db.otp_challenges.find_one_and_update(
+        {'token_hash': digest(data.challenge_token), 'expires_at': {'$gt': datetime.now(timezone.utc)}, 'used_at': {'$exists': False}, 'attempts': {'$lt': 5}},
+        {'$inc': {'attempts': 1}}, return_document=ReturnDocument.AFTER)
+    if not challenge:
+        raise HTTPException(401, 'This code has expired. Ask for a new one.')
+    code = data.code.strip().replace(' ', '')
+    if not challenge['user_id'] or not secrets.compare_digest(challenge['code_hash'], digest(f'{data.challenge_token}:{code}')):
+        left = 5 - challenge['attempts']
+        raise HTTPException(401, f'That code is not right. {left} attempt{"s" if left != 1 else ""} left.' if left > 0 else 'Too many wrong codes. Ask for a new one.')
+    user = await db.users.find_one({'id': challenge['user_id'], 'org_id': challenge['org_id'], 'active': True, 'role': 'parent'}, {'_id': 0})
+    if not user:
+        raise HTTPException(401, 'This account is no longer active.')
+    await db.otp_challenges.update_one({'id': challenge['id']}, {'$set': {'used_at': now()}})
+    if challenge.get('channel') == 'whatsapp' and not user.get('phone_verified_at'):
+        await db.users.update_one({'id': user['id'], 'org_id': user['org_id']}, {'$set': {'phone_verified_at': now()}})
+    return await start_session(user, request, response)

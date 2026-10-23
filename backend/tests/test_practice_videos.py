@@ -29,17 +29,40 @@ BASE_URL = _read_backend_url()
 
 
 def tiny_webm_bytes() -> bytes:
-    # Minimal byte payload for multipart upload checks (backend validates type/size, not codec integrity).
-    return b"\x1a\x45\xdf\xa3\x93B\x82\x88mock-webm-content-for-testing-only"
+    """A real 2-second WebM clip: the server probes uploads with ffprobe, so mock bytes are rejected."""
+    import shutil
+    import subprocess
+    import tempfile
+    if not shutil.which('ffmpeg'):
+        pytest.skip('ffmpeg is needed to build a real test video')
+    with tempfile.TemporaryDirectory() as folder:
+        path = f'{folder}/clip.webm'
+        subprocess.run(['ffmpeg', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc=size=160x120:rate=10', '-t', '2',
+                        '-c:v', 'libvpx', '-b:v', '200k', path], check=True)
+        with open(path, 'rb') as handle:
+            return handle.read()
 
 
 def tiny_png_bytes() -> bytes:
-    # Valid 1x1 PNG for admin/public media regression checks.
-    return (
-        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
-        b"\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDAT\x08\x99c``\x00\x00\x00\x04\x00\x01"
-        b"\x0b\xe7\x02\x9d\x00\x00\x00\x00IEND\xaeB`\x82"
-    )
+    """A real 64x64 PNG (very small images are refused by the image checks)."""
+    from PIL import Image
+    buffer = io.BytesIO()
+    Image.new('RGB', (64, 64), (120, 170, 150)).save(buffer, 'PNG')
+    return buffer.getvalue()
+
+
+def wait_until_ready(session: requests.Session, role: str, video_id: str, timeout: float = 120):
+    """Uploads are scanned and processed in the background; families only see a video once it is ready."""
+    import time
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        video = next((v for v in workspace(session, role)["practice_videos"] if v["id"] == video_id), None)
+        if video and video.get("processing_status") == "ready":
+            return video
+        if video and video.get("processing_status") == "failed":
+            pytest.fail(f"Video processing failed: {video.get('processing_error')}")
+        time.sleep(1.5)
+    pytest.fail("Video did not finish processing in time")
 
 
 @pytest.fixture
@@ -109,6 +132,7 @@ class TestPracticeVideoBackend:
         assert created_data["viewed"] is False
         assert "storage_path" not in created_data
         video_id = created_data["id"]
+        wait_until_ready(session, "staff", video_id)
 
         parent_csrf = start_demo(session, "parent")
         parent_ws_before = workspace(session, "parent")
@@ -149,6 +173,7 @@ class TestPracticeVideoBackend:
         created = create_practice_video(staff_parent_session, staff_csrf, child_id)
         assert created.status_code == 201
         video_id = created.json()["id"]
+        wait_until_ready(staff_parent_session, "staff", video_id)
 
         _ = start_demo(staff_parent_session, "parent")
         parent_media = staff_parent_session.get(f"{BASE_URL}/api/practice-videos/{video_id}/media")

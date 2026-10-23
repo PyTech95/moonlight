@@ -37,8 +37,10 @@ async def stage_attachment(child_id: str, file: UploadFile = File(...), p=Depend
     except ValueError:
         await audit(p, 'team:attachment', child_id, 'malware_rejected')
         raise HTTPException(422, 'This file was rejected by the malware scan.')
+    except RuntimeError as exc:
+        raise HTTPException(503, str(exc) or 'The virus scanner is not ready. Please try again in a few minutes.')
     except Exception:
-        raise HTTPException(503, 'The malware scanner is updating. Please try again in a minute.')
+        raise HTTPException(503, 'The virus scanner could not check this file. Please try again in a minute.')
     att_id = uid()
     path = f'{APP_NAME}/team-attachments/{p["org_id"]}/{child_id}/{att_id}.{SIGNATURES[kind][1]}'
     try:

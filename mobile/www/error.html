@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Moonlight Neurocare</title>
+  <style>
+    :root { --deep: #123f46; --teal: #176b65; --paper: #f8f7f2; --muted: #5d6e69; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      background: var(--paper); color: var(--deep);
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      display: grid; place-items: center; padding: 24px;
+    }
+    main { max-width: 340px; text-align: center; display: grid; gap: 14px; justify-items: center; }
+    img { width: 96px; height: auto; }
+    h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 500; font-size: 1.6rem; margin: 6px 0 0; }
+    p { margin: 0; color: var(--muted); line-height: 1.55; }
+    button {
+      margin-top: 8px; border: 0; border-radius: 8px; background: var(--teal); color: #fff;
+      font: inherit; font-weight: 600; padding: 14px 26px; min-width: 180px;
+    }
+    button:focus-visible { outline: 3px solid var(--deep); outline-offset: 3px; }
+    small { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="logo.webp" alt="Moonlight Neurocare">
+    <h1>Can't connect right now</h1>
+    <p>Moonlight Neurocare needs an internet connection. Check your mobile data or Wi-Fi, then try again.</p>
+    <button type="button" id="retry">Try again</button>
+    <small>If this keeps happening, call the center on +91 79822 82025.</small>
+  </main>
+  <script src="app-config.js"></script>
+  <script>
+    document.getElementById('retry').addEventListener('click', function () {
+      var target = window.MOONLIGHT_APP_URL || 'https://moonlightneurocare.com/login';
+      if (!navigator.onLine) { this.textContent = 'Still offline. Try again'; return; }
+      window.location.replace(target);
+    });
+  </script>
+</body>
+</html>

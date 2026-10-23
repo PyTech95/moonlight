@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from pydantic import Field
 
-from config import APP_MODE, Input, Payload, db, now, uid
+from config import APP_MODE, IS_DEMO, Input, Payload, db, now, uid
 from consents import effective_consent
 from security import ScopedRepo, audit, authorize, principal
 from storage import APP_NAME, get_object, put_object
@@ -119,6 +119,8 @@ async def create_practice_video(
             caption_path = caption_object['path']
         except ValueError as exc:
             raise HTTPException(422, str(exc))
+        except RuntimeError as exc:
+            raise HTTPException(503, str(exc) or 'The virus scanner is not ready. Please try again in a few minutes.')
     timestamp = now()
     record = {
         'id': uid(), 'org_id': p['org_id'], 'child_id': child['id'], 'child_name': child['name'],
@@ -129,7 +131,7 @@ async def create_practice_video(
         'caption_path': caption_path, 'transcript': transcript.strip(), 'processing_status': 'processing', 'processing_error': '',
         'consent': {'confirmed': True, 'confirmed_by': p['id'], 'confirmed_at': timestamp, 'scope': 'Home-practice guidance sharing'},
         'read_by': [], 'created_at': timestamp, 'published_at': timestamp, 'version': 1,
-        'is_deleted': False, 'synthetic_environment': True,
+        'is_deleted': False, 'synthetic_environment': IS_DEMO,
     }
     await db.practice_videos.insert_one(record.copy())
     await queue_video_processing(record)

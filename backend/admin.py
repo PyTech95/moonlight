@@ -2,12 +2,14 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File, Form
 from pydantic import Field, EmailStr
 import asyncio
-from config import db, Input, Payload, uid
+import logging
+from config import db, Input, Payload, uid, IS_DEMO
 from security import principal, ScopedRepo, authorize, audit
 from storage import put_object, APP_NAME
 from emailer import send_email
 from whatsapp import send_whatsapp_template
 from vault import encrypt_secret
+import cms
 from media_processing import validate_and_normalize_image
 import uuid
 
@@ -19,9 +21,12 @@ THERAPY_SLUGS = {'speech-therapy', 'occupational-therapy', 'aba-therapy', 'senso
 def _sanitize_settings(doc):
     if not doc:
         return doc
-    clean = {k: v for k, v in doc.items() if k not in ('smtp_app_password', 'wa_access_token')}
+    clean = {k: v for k, v in doc.items() if k not in ('smtp_app_password', 'wa_access_token', 'daily_api_key', 'razorpay')}
     clean['smtp_password_set'] = bool(doc.get('smtp_app_password'))
     clean['wa_token_set'] = bool(doc.get('wa_access_token'))
+    clean['daily_key_set'] = bool(doc.get('daily_api_key'))
+    rp = doc.get('razorpay') or {}
+    clean['razorpay_on'] = bool(rp.get('enabled') and rp.get('key_secret'))
     return clean
 
 
@@ -60,11 +65,12 @@ class SettingsInput(Input):
 async def update_settings(data: SettingsInput, p=Depends(principal)):
     await authorize(p, 'settings:update')
     changes = data.model_dump(exclude={'version'})
-    changes['verification_status'] = 'Pending center verification'
+    changes['verification_status'] = 'Pending center verification' if IS_DEMO else 'Published'
     result = await db.settings.update_one({'org_id': p['org_id'], 'version': data.version}, {'$set': changes, '$inc': {'version': 1}})
     if not result.matched_count:
         raise HTTPException(409, 'Settings changed. Refresh before saving.')
     await audit(p, 'settings:update', 'organization')
+    cms._notify_change(p['org_id'])
     return await db.settings.find_one({'org_id': p['org_id']}, {'_id': 0, 'org_id': 0})
 
 
@@ -111,6 +117,8 @@ class WhatsappInput(Input):
     wa_template_name: str = Field(default='', max_length=120)
     wa_template_language: str = Field(default='en_US', max_length=12)
     wa_recipient: str = Field(default='', max_length=25)
+    wa_otp_template: str = Field(default='', max_length=120)
+    wa_otp_language: str = Field(default='en', max_length=12)
 
 
 @router.patch('/admin/whatsapp', response_model=Payload)
@@ -118,7 +126,8 @@ async def update_whatsapp(data: WhatsappInput, p=Depends(principal)):
     await authorize(p, 'settings:update')
     changes = {'wa_enabled': data.wa_enabled, 'wa_phone_number_id': data.wa_phone_number_id.strip(),
                'wa_template_name': data.wa_template_name.strip(), 'wa_template_language': (data.wa_template_language or 'en_US').strip(),
-               'wa_recipient': data.wa_recipient.strip(), 'wa_api_version': 'v26.0'}
+               'wa_recipient': data.wa_recipient.strip(), 'wa_api_version': 'v26.0',
+               'wa_otp_template': data.wa_otp_template.strip(), 'wa_otp_language': (data.wa_otp_language or 'en').strip()}
     token = data.wa_access_token.strip()
     if token:
         changes['wa_access_token'] = encrypt_secret(token)
@@ -141,6 +150,36 @@ async def test_whatsapp(p=Depends(principal)):
         raise HTTPException(400, f'Could not send the WhatsApp test. Check the IDs, token and that the template is approved with 3 body variables. ({type(exc).__name__})')
     await audit(p, 'settings:update', 'whatsapp:test')
     return {'message': 'Test WhatsApp message sent. Check the center phone.'}
+
+
+class VideoInput(Input):
+    daily_domain: str = Field(default='', max_length=120)
+    daily_api_key: str = Field(default='', max_length=200)
+
+
+@router.patch('/admin/video', response_model=Payload)
+async def update_video(data: VideoInput, p=Depends(principal)):
+    await authorize(p, 'settings:update')
+    domain = data.daily_domain.strip().rstrip('/')
+    if domain and not domain.startswith('http'):
+        domain = f'https://{domain}'
+    if domain and not domain.endswith('.daily.co'):
+        raise HTTPException(422, 'Use your Daily.co domain, for example https://moonlight.daily.co')
+    changes = {'daily_domain': domain}
+    if data.daily_api_key.strip():
+        changes['daily_api_key'] = encrypt_secret(data.daily_api_key.strip())
+    await db.settings.update_one({'org_id': p['org_id']}, {'$set': changes, '$inc': {'version': 1}})
+    await audit(p, 'settings:update', 'video')
+    return await _return_settings(p['org_id'])
+
+
+@router.post('/admin/video/test', response_model=Payload)
+async def test_video(p=Depends(principal)):
+    await authorize(p, 'settings:update')
+    from video import test_connection
+    result = await test_connection(p['org_id'])
+    await audit(p, 'settings:update', 'video:test')
+    return result
 
 
 @router.get('/admin/audit', response_model=Payload)
@@ -181,9 +220,13 @@ async def upload_media(slot: str = Form(...), name: str = Form(''), role: str = 
             normalized, width, height = await asyncio.to_thread(validate_and_normalize_image, data)
         except ValueError as exc:
             raise HTTPException(422, str(exc))
-        except RuntimeError:
-            raise HTTPException(503, 'The malware scanner is updating its definitions. Please try again in a minute.')
-        result = await asyncio.to_thread(put_object, f'{APP_NAME}/{p["org_id"]}/public/{uuid.uuid4()}.webp', normalized, 'image/webp')
+        except RuntimeError as exc:
+            raise HTTPException(503, str(exc) or 'The virus scanner is not ready. Please try again in a few minutes.')
+        try:
+            result = await asyncio.to_thread(put_object, f'{APP_NAME}/{p["org_id"]}/public/{uuid.uuid4()}.webp', normalized, 'image/webp')
+        except Exception:
+            logging.getLogger('storage').exception('Site image upload failed')
+            raise HTTPException(503, 'The image could not be saved to storage. Check the server storage settings and try again.')
         path = result['path']
     if slot == 'team':
         if not name.strip() or not role.strip():
@@ -206,6 +249,7 @@ async def upload_media(slot: str = Form(...), name: str = Form(''), role: str = 
         field = 'director_photo' if slot == 'director' else slot
         await db.settings.update_one({'org_id': p['org_id']}, {'$set': {field: path}, '$inc': {'version': 1}})
     await audit(p, 'settings:update', f'media:{slot}')
+    cms._notify_change(p['org_id'])
     return await _return_settings(p['org_id'])
 
 
@@ -227,4 +271,5 @@ async def remove_media(data: MediaRemoveInput, p=Depends(principal)):
         field = 'director_photo' if data.slot == 'director' else data.slot
         await db.settings.update_one({'org_id': p['org_id']}, {'$set': {field: ''}, '$inc': {'version': 1}})
     await audit(p, 'settings:update', f'media-remove:{data.slot}')
+    cms._notify_change(p['org_id'])
     return await _return_settings(p['org_id'])

@@ -1,13 +1,12 @@
-import os
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import Field
 
 from config import Input, Payload, db, now, uid
 from security import audit, authorize, principal
+from video import join_room, video_connected
 
 router = APIRouter()
 FORMATS = {'center': 'At the center', 'online': 'Online (video)', 'home': 'At home'}
@@ -36,8 +35,6 @@ def _parse(value: str) -> datetime:
     return datetime.fromisoformat(value)
 
 
-def video_connected() -> bool:
-    return bool(os.environ.get('DAILY_API_KEY') and os.environ.get('DAILY_DOMAIN'))
 
 
 async def _staff_class(p: dict, class_id: str) -> dict:
@@ -59,7 +56,7 @@ async def list_classes(p=Depends(principal)):
         q['status'] = 'scheduled'
     classes = await db.therapy_classes.find(q, {'_id': 0, 'video_room': 0}).sort('starts_at', 1).to_list(300)
     bookings = await db.class_bookings.find({'org_id': org, 'class_id': {'$in': [c['id'] for c in classes]}, 'status': 'booked'}, {'_id': 0}).to_list(2000)
-    data = {'formats': FORMATS, 'video_connected': video_connected()}
+    data = {'formats': FORMATS, 'video_connected': await video_connected(org)}
     if p['role'] == 'parent':
         children = await db.children.find({'org_id': org, 'guardian_ids': p['id']}, {'_id': 0, 'id': 1, 'name': 1}).to_list(20)
         mine = {c['id'] for c in children}
@@ -141,14 +138,6 @@ async def cancel_booking(booking_id: str, p=Depends(principal)):
     return {'message': 'Booking cancelled.'}
 
 
-async def _daily(path: str, payload: dict) -> dict:
-    async with httpx.AsyncClient(timeout=10) as client:
-        response = await client.post(f'https://api.daily.co/v1/{path}', headers={'Authorization': f"Bearer {os.environ['DAILY_API_KEY']}"}, json=payload)
-    if response.status_code >= 400 and not (path == 'rooms' and 'already exists' in response.text):
-        raise HTTPException(502, 'The video provider could not open the room. Please try again.')
-    return response.json()
-
-
 @router.post('/classes/{class_id}/video/join', response_model=Payload)
 async def join_video(class_id: str, p=Depends(principal)):
     await authorize(p, 'classes:read')
@@ -163,17 +152,8 @@ async def join_video(class_id: str, p=Depends(principal)):
     starts, ends, current = _parse(record['starts_at']), _parse(record['ends_at']), datetime.now(timezone.utc)
     if current < starts - JOIN_EARLY or current > ends + timedelta(minutes=10):
         raise HTTPException(409, 'The video room opens 15 minutes before the class starts.')
-    if not video_connected():
-        raise HTTPException(503, 'In-app video calling is not connected yet. The center needs to add its video provider key.')
-    room_exp = int((ends + timedelta(minutes=15)).timestamp())
-    room = record.get('video_room') or f'mnc-{uid()[:18]}'
+    room, details = await join_room(p['org_id'], record.get('video_room'), ends, p, is_therapist, 7)
     if not record.get('video_room'):
-        await _daily('rooms', {'name': room, 'privacy': 'private', 'properties': {'geo': 'ap-south-1', 'max_participants': 7, 'exp': room_exp, 'eject_at_room_exp': True,
-                                                                                 'enable_prejoin_ui': True, 'enable_chat': False, 'enable_screenshare': is_therapist, 'enable_knocking': False}})
         await db.therapy_classes.update_one({'org_id': p['org_id'], 'id': class_id, 'video_room': {'$exists': False}}, {'$set': {'video_room': room}})
-        room = (await db.therapy_classes.find_one({'org_id': p['org_id'], 'id': class_id}, {'_id': 0, 'video_room': 1}))['video_room']
-    exp = min(int((current + timedelta(minutes=90)).timestamp()), room_exp)
-    token = await _daily('meeting-tokens', {'properties': {'room_name': room, 'user_id': p['id'], 'user_name': p['display_name'], 'is_owner': is_therapist, 'exp': exp,
-                                                           'eject_at_token_exp': True, 'enable_screenshare': is_therapist, 'enable_recording': False}})
     await audit(p, 'classes:video-join', class_id)
-    return {'room_url': f"{os.environ['DAILY_DOMAIN'].rstrip('/')}/{room}", 'token': token['token'], 'expires_at': exp}
+    return details

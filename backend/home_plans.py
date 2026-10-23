@@ -4,7 +4,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import Field
 
-from config import Input, Payload, db, now, uid
+from config import IS_DEMO, Input, Payload, db, now, uid
 from security import ScopedRepo, audit, authorize, principal
 
 
@@ -110,7 +110,7 @@ async def create_home_plan(data: HomePlanInput, p=Depends(principal)):
         'why_this_helps': data.why_this_helps, 'items': _items(data.items), 'status': data.status,
         'author_id': p['id'], 'author_name': p['display_name'], 'read_by': [], 'responses': [],
         'created_at': timestamp, 'published_at': timestamp if data.status == 'published' else '',
-        'updated_at': timestamp, 'version': 1, 'is_deleted': False, 'synthetic_environment': True,
+        'updated_at': timestamp, 'version': 1, 'is_deleted': False, 'synthetic_environment': IS_DEMO,
     }
     await db.home_plans.insert_one(record.copy())
     await audit(p, 'home_plans:create', record['id'])

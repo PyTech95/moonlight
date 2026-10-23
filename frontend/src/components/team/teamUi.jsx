@@ -15,8 +15,25 @@ export const SCOPE_LABELS = {
 
 export const KIND_TONE = { parent: 'sage', therapist: 'lavender', school: 'yellow', coordinator: 'peach' };
 
-export const fmt = value => value ? new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value)) : '—';
-export const fmtTime = value => value ? new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(value)) : '—';
+export const fmt = (value) =>
+  value
+    ? new Intl.DateTimeFormat('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }).format(new Date(value))
+    : '—';
+export const fmtTime = (value) =>
+  value
+    ? new Intl.DateTimeFormat('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        day: 'numeric',
+        month: 'short',
+        hour: 'numeric',
+        minute: '2-digit',
+      }).format(new Date(value))
+    : '—';
 
 export const useAction = () => {
   const [busy, setBusy] = useState('');
@@ -39,9 +56,11 @@ export const useAction = () => {
 export const TextField = ({ id, label, value, onChange, area = false, hint, ...rest }) => (
   <div className="field tm-field">
     <label htmlFor={id}>{label}</label>
-    {area
-      ? <textarea id={id} data-testid={id} value={value} onChange={e => onChange(e.target.value)} {...rest} />
-      : <input id={id} data-testid={id} value={value} onChange={e => onChange(e.target.value)} {...rest} />}
+    {area ? (
+      <textarea id={id} data-testid={id} value={value} onChange={(e) => onChange(e.target.value)} {...rest} />
+    ) : (
+      <input id={id} data-testid={id} value={value} onChange={(e) => onChange(e.target.value)} {...rest} />
+    )}
     {hint && <small className="tm-hint">{hint}</small>}
   </div>
 );
@@ -49,19 +68,25 @@ export const TextField = ({ id, label, value, onChange, area = false, hint, ...r
 export const SelectField = ({ id, label, value, onChange, options }) => (
   <div className="field tm-field">
     <label htmlFor={id}>{label}</label>
-    <select id={id} data-testid={id} value={value} onChange={e => onChange(e.target.value)}>
-      {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+    <select id={id} data-testid={id} value={value} onChange={(e) => onChange(e.target.value)}>
+      {options.map(([v, l]) => (
+        <option key={v} value={v}>
+          {l}
+        </option>
+      ))}
     </select>
   </div>
 );
 
 export const Check = ({ id, checked, onChange, children }) => (
   <label className="tm-check" htmlFor={id}>
-    <input id={id} type="checkbox" data-testid={id} checked={checked} onChange={e => onChange(e.target.checked)} />
+    <input id={id} type="checkbox" data-testid={id} checked={checked} onChange={(e) => onChange(e.target.checked)} />
     <span>{children}</span>
   </label>
 );
 
 export const AuthorTag = ({ record }) => (
-  <span className={`status ${KIND_TONE[record.author_kind] || 'sage'}`}>{record.author_label} · {record.author_name}</span>
+  <span className={`status ${KIND_TONE[record.author_kind] || 'sage'}`}>
+    {record.author_label} · {record.author_name}
+  </span>
 );

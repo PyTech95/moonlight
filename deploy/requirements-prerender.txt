@@ -1,0 +1,2 @@
+# Used by deploy/prerender.py (static HTML for Google and AI assistants). Installed into the same venv as the API.
+playwright==1.56.0

@@ -35,6 +35,12 @@ def ensure_definitions_sync():
         refresh_definitions_sync()
 
 
+def refresh_in_background():
+    """Start a definitions download unless one is already running. Returns immediately."""
+    if not _lock.locked():
+        threading.Thread(target=refresh_definitions_sync, name='freshclam', daemon=True).start()
+
+
 async def record_status(result: dict, trigger: str):
     await db.system_status.update_one({'id': 'virus_definitions'}, {'$set': {
         'id': 'virus_definitions', 'ready': result['ready'], 'last_error': result['error'], 'trigger': trigger, 'updated_at': now()}}, upsert=True)

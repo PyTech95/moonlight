@@ -1,0 +1,24 @@
+# Lean dependency list for running the backend on your own server (VPS).
+# requirements.txt is the original Emergent image list and contains many unused AI/data packages
+# (and the private emergentintegrations package, which is not imported anywhere).
+fastapi==0.110.1
+starlette==0.37.2
+uvicorn==0.25.0
+pydantic==2.13.5
+pydantic_core==2.46.5
+email-validator==2.3.0
+python-multipart==0.0.32
+motor==3.7.1
+pymongo==4.13.2       # 4.9+ needed for MongoDB 8.0 (Ubuntu 24.04 packages, new Atlas clusters)
+bcrypt==4.1.3
+PyOTP==2.10.0
+cryptography==50.0.1
+python-dotenv==1.2.3
+httpx==0.28.1
+requests==2.34.2
+pillow==12.3.0
+boto3==1.43.92
+fpdf2==2.8.4          # invoice PDFs
+# tests
+pytest==9.1.1
+pytest-xdist==3.8.0

@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import logging
-from config import db, client, ALLOWED_ORIGINS
+from config import db, client, ALLOWED_ORIGINS, APP_MODE
 from storage import init_storage
 from public import router as public_router
 from auth import router as auth_router
@@ -22,7 +22,12 @@ from schools_admin import router as schools_admin_router
 from attachments import router as attachments_router
 from digests import router as digests_router
 from classes import router as classes_router
+from cms import router as cms_router
+from site_build import router as site_build_router
 from cron import router as cron_router, startup_definitions
+from children_admin import router as children_admin_router
+from scheduling import router as scheduling_router
+from billing import router as billing_router
 from jobs import notification_worker
 from media_processing import media_worker
 from migrations import up as migrate_up
@@ -59,9 +64,24 @@ async def lifespan(app):
     await db.class_bookings.create_index([('org_id', 1), ('class_id', 1), ('status', 1)])
     await db.school_digests.create_index([('org_id', 1), ('child_id', 1), ('week_ending', 1)], unique=True)
     await db.cron_runs.create_index('id', unique=True)
+    await db.site_content.create_index('org_id', unique=True)
+    await db.site_content_history.create_index([('org_id', 1), ('at', -1)])
     for collection in ['school_links', 'school_assignments', 'support_goals', 'goal_contributions', 'classroom_observations', 'team_messages', 'team_meetings', 'team_tasks']:
         await db[collection].create_index([('org_id', 1), ('child_id', 1)])
     await db.notification_jobs.create_index([('org_id', 1), ('status', 1), ('meta.child_id', 1), ('meta.school_id', 1)])
+    # Phase 4: scheduling and billing
+    await db.appointments.create_index([('org_id', 1), ('starts_at', 1)])
+    await db.appointments.create_index([('org_id', 1), ('therapist_id', 1), ('starts_at', 1)])
+    await db.appointments.create_index([('org_id', 1), ('child_id', 1), ('starts_at', 1)])
+    await db.appointments.create_index([('org_id', 1), ('billing.invoice_id', 1)])
+    await db.otp_challenges.create_index('token_hash', unique=True)
+    await db.otp_challenges.create_index('expires_at', expireAfterSeconds=0)
+    await db.users.create_index([('org_id', 1), ('phone', 1)])
+    for collection in ['invoices', 'fee_items', 'package_plans', 'child_packages']:
+        await db[collection].create_index([('org_id', 1), ('id', 1)], unique=True)
+    await db.invoices.create_index([('org_id', 1), ('child_id', 1), ('created_at', -1)])
+    await db.invoices.create_index('payment_link.id')
+    await db.child_packages.create_index([('org_id', 1), ('child_id', 1), ('status', 1)])
     try:
         init_storage()
     except Exception as exc:
@@ -76,9 +96,9 @@ async def lifespan(app):
     client.close()
 
 
-app = FastAPI(title='Moonlight Neurocare · Stage A', lifespan=lifespan)
+app = FastAPI(title='Moonlight Neurocare', lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_credentials=True,
-                   allow_methods=['GET', 'POST', 'PATCH', 'DELETE'], allow_headers=['Content-Type', 'X-CSRF-Token', 'Idempotency-Key'])
+                   allow_methods=['GET', 'POST', 'PATCH', 'PUT', 'DELETE'], allow_headers=['Content-Type', 'X-CSRF-Token', 'Idempotency-Key'])
 
 
 @app.middleware('http')
@@ -92,7 +112,8 @@ async def privacy_headers(request: Request, call_next):
     if 'cache-control' not in response.headers:
         response.headers['Cache-Control'] = 'no-store'
     response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Robots-Tag'] = 'noindex, nofollow'
+    if not request.url.path.startswith('/api/public/media/'):  # public images may appear in Google Images
+        response.headers['X-Robots-Tag'] = 'noindex, nofollow'
     response.headers['Referrer-Policy'] = 'same-origin'
     response.headers['Permissions-Policy'] = 'camera=(self), microphone=(self), geolocation=()'
     return response
@@ -101,7 +122,7 @@ async def privacy_headers(request: Request, call_next):
 @app.get('/api/health')
 async def health():
     await db.command('ping')
-    return {'status': 'ok', 'mode': 'demo', 'stage': 'A'}
+    return {'status': 'ok', 'mode': APP_MODE}
 
 
 app.include_router(public_router, prefix='/api')
@@ -113,5 +134,6 @@ app.include_router(home_plans_router, prefix='/api')
 app.include_router(access_router, prefix='/api')
 app.include_router(consents_router, prefix='/api')
 app.include_router(operations_router, prefix='/api')
-for extra in [team_router, documents_router, sharing_router, school_portal_router, schools_admin_router, attachments_router, digests_router, classes_router, cron_router]:
+for extra in [team_router, documents_router, sharing_router, school_portal_router, schools_admin_router, attachments_router, digests_router, classes_router, cron_router, cms_router, site_build_router,
+              children_admin_router, scheduling_router, billing_router]:
     app.include_router(extra, prefix='/api')
