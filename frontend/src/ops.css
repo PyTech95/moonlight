@@ -116,3 +116,4 @@
   .inv-line{grid-template-columns:1fr 60px 100px;}
   .inv-line .amount{grid-column:2/3}
 }
+.button.compact{min-height:36px;padding:7px 13px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px}

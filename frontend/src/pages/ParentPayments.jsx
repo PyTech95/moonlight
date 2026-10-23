@@ -3,7 +3,7 @@ import { CheckCircle2, Download, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, errorText } from '../lib/api';
 import { PortalHeading, EmptyState } from '../components/PortalLayout';
-import { INVOICE_LABEL, INVOICE_TONE, rupees, useLoad } from '../components/ops/opsUi';
+import { INVOICE_LABEL, INVOICE_TONE, niceDate, rupees, useLoad } from '../components/ops/opsUi';
 import { pdfUrl } from './Billing';
 
 export const ParentPayments = () => {
@@ -45,7 +45,7 @@ export const ParentPayments = () => {
               <span style={{ width: `${(100 * p.sessions_left) / p.sessions_total}%` }} />
             </div>
             <small>
-              {p.child_name} · valid until {p.expires_on}
+              {p.child_name} · valid until {niceDate(p.expires_on)}
             </small>
           </div>
         ))}
@@ -61,7 +61,7 @@ export const ParentPayments = () => {
                     {rupees(i.balance_paise)} <span className={`status ${INVOICE_TONE[i.status]}`}>{INVOICE_LABEL[i.status]}</span>
                   </h3>
                   <p>
-                    Invoice {i.number} · {i.child_name} · due {i.due_date}
+                    Invoice {i.number} · {i.child_name} · due {niceDate(i.due_date)}
                   </p>
                   <p className="ops-muted">{i.items.map((x) => x.description).join(' · ')}</p>
                 </div>
@@ -97,7 +97,7 @@ export const ParentPayments = () => {
                     <td>
                       <strong>{i.number}</strong>
                       <div className="ops-muted">
-                        {i.child_name} · {i.issue_date}
+                        {i.child_name} · {niceDate(i.issue_date)}
                       </div>
                     </td>
                     <td className="num">{rupees(i.total_paise)}</td>

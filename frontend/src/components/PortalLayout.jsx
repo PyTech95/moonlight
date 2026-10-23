@@ -299,13 +299,15 @@ export const PortalLayout = () => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   });
 
-  const mobileItems = items.filter(([key]) =>
+  // The phone bar holds five items; everything else stays reachable from the menu and More.
+  const phoneBar = items.filter(([key]) =>
     role === 'parent'
       ? ['today', 'child', 'practice', 'schedule', 'more'].includes(key)
       : role === 'staff'
-        ? key !== 'children'
+        ? (staffMenu ? key !== 'classes' : !['children', 'classes'].includes(key))
         : true,
   );
+  const mobileItems = phoneBar.length > 5 ? [...phoneBar.slice(0, 4), ...phoneBar.filter(([key]) => key === 'more')] : phoneBar;
 
   const notificationPath = `/portal/${role}/${
     role === 'admin' ? 'enquiries' : role === 'parent' ? 'practice' : role === 'school' ? 'team' : 'more'

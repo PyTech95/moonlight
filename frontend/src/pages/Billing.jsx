@@ -14,6 +14,7 @@ import {
   Tabs,
   fromPaise,
   istDate,
+  niceDate,
   niceDay,
   rupees,
   toPaise,
@@ -230,7 +231,7 @@ const InvoiceDialog = ({ id, onClose, onChanged, canWrite, razorpay }) => {
   if (!id) return null;
   return (
     <Modal open onClose={onClose} wide title={d ? (d.number ? `Invoice ${d.number}` : 'Draft invoice') : 'Invoice'} testid="invoice-dialog"
-      description={d ? `${d.child_name} · ${d.bill_to.name}${d.issue_date ? ` · issued ${d.issue_date}, due ${d.due_date}` : ''}` : ''}>
+      description={d ? `${d.child_name} · ${d.bill_to.name}${d.issue_date ? ` · issued ${niceDate(d.issue_date)}, due ${niceDate(d.due_date)}` : ''}` : ''}>
       {!d ? (
         <div className="loading-screen">Opening…</div>
       ) : (
@@ -297,7 +298,7 @@ const InvoiceDialog = ({ id, onClose, onChanged, canWrite, razorpay }) => {
                       {rupees(p.amount_paise)} · {p.method_label}
                     </strong>
                     <small>
-                      {p.received_on} · {p.reference || 'no reference'} · recorded by {p.recorded_by_name}
+                      {niceDate(p.received_on)} · {p.reference || 'no reference'} · recorded by {p.recorded_by_name}
                       {p.reversed && ` · reversed: ${p.reverse_reason}`}
                     </small>
                   </div>
@@ -313,7 +314,7 @@ const InvoiceDialog = ({ id, onClose, onChanged, canWrite, razorpay }) => {
                     }}>
                       <input aria-label="Reason" placeholder="Reason, e.g. bounced cheque" value={reversing.reason} required minLength={3}
                         onChange={(e) => setReversing({ ...reversing, reason: e.target.value })} style={{ minHeight: 34, width: 220 }} />
-                      <button className="button small outlined" disabled={busy === 'rev'}>Reverse</button>
+                      <button className="button outlined compact" disabled={busy === 'rev'}>Reverse</button>
                     </form>
                   )}
                 </div>
@@ -374,17 +375,17 @@ const InvoiceDialog = ({ id, onClose, onChanged, canWrite, razorpay }) => {
           )}
           <div className="ops-actions">
             {d.status !== 'draft' && (
-              <a className="button outlined small" href={pdfUrl(d.id)} target="_blank" rel="noreferrer" data-testid="invoice-pdf">
+              <a className="button outlined compact" href={pdfUrl(d.id)} target="_blank" rel="noreferrer" data-testid="invoice-pdf">
                 <Download size={14} /> PDF
               </a>
             )}
             {canWrite && ['issued', 'partly_paid'].includes(d.status) && !pay && (
-              <button className="button primary small" onClick={() => setPay({ amount: fromPaise(d.balance_paise), method: 'upi', reference: '', received_on: istDate() })} data-testid="pay-open">
+              <button className="button primary compact" onClick={() => setPay({ amount: fromPaise(d.balance_paise), method: 'upi', reference: '', received_on: istDate() })} data-testid="pay-open">
                 <Wallet size={14} /> Record payment
               </button>
             )}
             {canWrite && ['issued', 'partly_paid'].includes(d.status) && razorpay && (
-              <button className="button outlined small" disabled={busy === 'link'}
+              <button className="button outlined compact" disabled={busy === 'link'}
                 onClick={() => run('link', () => api.post(`/billing/invoices/${d.id}/payment-link`), (r) => r.data.message).then((ok) => ok && refresh())}
                 data-testid="pay-link">
                 <Link2 size={14} /> Send online payment link
@@ -392,7 +393,7 @@ const InvoiceDialog = ({ id, onClose, onChanged, canWrite, razorpay }) => {
             )}
             {canWrite && d.status === 'draft' && (
               <>
-                <button className="button primary small" onClick={() => run('issue', () => api.post(`/billing/invoices/${d.id}/issue`), 'Invoice issued and emailed.').then((ok) => ok && refresh())}>
+                <button className="button primary compact" onClick={() => run('issue', () => api.post(`/billing/invoices/${d.id}/issue`), 'Invoice issued and emailed.').then((ok) => ok && refresh())}>
                   Issue
                 </button>
                 <button className="text-button danger" onClick={() => run('del', () => api.delete(`/billing/invoices/${d.id}`), (r) => r.data.message).then((ok) => ok && (onChanged(), onClose()))}>
@@ -443,7 +444,7 @@ const Catalog = ({ canWrite, children, onSold }) => {
         <div className="tm-row" style={{ justifyContent: 'space-between' }}>
           <h3>Price list</h3>
           {canWrite && (
-            <button className="button outlined small" onClick={() => setFee({ name: '', service: '', unit: 'session', amount: '', active: true })} data-testid="fee-add">
+            <button className="button outlined compact" onClick={() => setFee({ name: '', service: '', unit: 'session', amount: '', active: true })} data-testid="fee-add">
               <Plus size={14} /> Add price
             </button>
           )}
@@ -489,7 +490,7 @@ const Catalog = ({ canWrite, children, onSold }) => {
         <div className="tm-row" style={{ justifyContent: 'space-between' }}>
           <h3>Session packages</h3>
           {canWrite && (
-            <button className="button outlined small" onClick={() => setPlan({ name: '', service: cat.data.services[0], sessions: 8, amount: '', validity_days: 60, active: true })} data-testid="plan-add">
+            <button className="button outlined compact" onClick={() => setPlan({ name: '', service: cat.data.services[0], sessions: 8, amount: '', validity_days: 60, active: true })} data-testid="plan-add">
               <Plus size={14} /> Add package
             </button>
           )}
@@ -565,7 +566,7 @@ const Catalog = ({ canWrite, children, onSold }) => {
               </Field>
               <TextField id="sell-start" label="Starts" type="date" value={sell.start_date} onChange={(v) => setSell({ ...sell, start_date: v })} />
             </div>
-            <button className="button primary small" disabled={busy === 'sell'} data-testid="sell-package">
+            <button className="button primary compact" disabled={busy === 'sell'} data-testid="sell-package">
               Sell and invoice
             </button>
           </form>
@@ -762,7 +763,7 @@ export const Billing = () => {
                       </small>
                     </div>
                     {canWrite && (
-                      <button className="button outlined small" onClick={() => setComposer({ child: u.child_id })} data-testid={`invoice-for-${u.child_id}`}>
+                      <button className="button outlined compact" onClick={() => setComposer({ child: u.child_id })} data-testid={`invoice-for-${u.child_id}`}>
                         Invoice
                       </button>
                     )}
@@ -782,7 +783,7 @@ export const Billing = () => {
                         {rupees(p.amount_paise)} · {p.child_name}
                       </strong>
                       <small>
-                        {p.received_on} · {p.method_label} · {p.invoice_number}
+                        {niceDate(p.received_on)} · {p.method_label} · {p.invoice_number}
                       </small>
                     </div>
                   </button>
@@ -793,7 +794,7 @@ export const Billing = () => {
               {(o.low_packages.length > 0 || o.expiring_packages.length > 0) && <h4>Packages to renew</h4>}
               {[...new Map([...o.low_packages, ...o.expiring_packages].map((p) => [p.id, p])).values()].map((p) => (
                 <p key={p.id}>
-                  {p.child_name}: {p.name} · {p.sessions_total - p.sessions_used} left · ends {p.expires_on}
+                  {p.child_name}: {p.name} · {p.sessions_total - p.sessions_used} left · ends {niceDate(p.expires_on)}
                 </p>
               ))}
             </section>
@@ -831,7 +832,7 @@ export const Billing = () => {
                 {(invoices.data?.items || []).map((i) => (
                   <tr key={i.id} className="clickable" onClick={() => setOpenId(i.id)} data-testid={`invoice-row-${i.id}`}>
                     <td>{i.number || 'Draft'}</td>
-                    <td>{i.issue_date ? dateLabel(i.issue_date) : '—'}</td>
+                    <td>{i.issue_date ? niceDate(i.issue_date) : '—'}</td>
                     <td>{i.child_name}</td>
                     <td className="num">{rupees(i.total_paise)}</td>
                     <td className="num">{rupees(i.balance_paise)}</td>

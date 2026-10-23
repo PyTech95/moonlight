@@ -16,6 +16,7 @@ import {
   mondayOf,
   niceDay,
   niceTime,
+  timeRange,
   useLoad,
 } from './opsUi';
 
@@ -316,7 +317,7 @@ const SessionDialog = ({ session, mode, onClose, onEdit, onChanged }) => {
     );
   return (
     <Modal open onClose={onClose} title={`${session.child_name} · ${session.service}`} testid="session-dialog"
-      description={`${longDay(istDate(session.starts_at))}, ${niceTime(session.starts_at)}–${niceTime(session.ends_at)}`}>
+      description={`${longDay(istDate(session.starts_at))}, ${timeRange(session.starts_at, session.ends_at)}`}>
       <p>
         {session.therapist_name || session.staff_label} · {session.mode_key === 'center' || !session.mode_key ? session.room || 'At the center' : session.mode}
       </p>
@@ -329,7 +330,7 @@ const SessionDialog = ({ session, mode, onClose, onEdit, onChanged }) => {
       {session.notes && mode !== 'parent' && <p className="ops-muted">Note: {session.notes}</p>}
       {cancelled && session.cancel_reason && <p className="ops-muted">Cancelled: {session.cancel_reason}</p>}
       {!cancelled && session.mode_key === 'online' && mode !== 'manage' && (
-        <button className="button primary small" onClick={() => joinVideo(session)} data-testid="session-join">
+        <button className="button primary compact" onClick={() => joinVideo(session)} data-testid="session-join">
           <Video size={15} /> Join video
         </button>
       )}
@@ -337,7 +338,7 @@ const SessionDialog = ({ session, mode, onClose, onEdit, onChanged }) => {
         <div className="ops-actions">
           <span className="ops-muted">Attendance:</span>
           {['Present', 'Absent', 'Not recorded'].map((a) => (
-            <button key={a} className={`button small ${session.attendance === a ? 'primary' : 'outlined'}`} disabled={busy === 'att' || session.attendance === a}
+            <button key={a} className={`button compact ${session.attendance === a ? 'primary' : 'outlined'}`} disabled={busy === 'att' || session.attendance === a}
               onClick={() => mark(a)} data-testid={`attendance-${a.replace(' ', '-').toLowerCase()}`}>
               {a}
             </button>
@@ -346,7 +347,7 @@ const SessionDialog = ({ session, mode, onClose, onEdit, onChanged }) => {
       )}
       {mode === 'manage' && !cancelled && !cancel && (
         <div className="ops-actions">
-          <button className="button outlined small" onClick={onEdit} data-testid="session-edit">
+          <button className="button outlined compact" onClick={onEdit} data-testid="session-edit">
             Change time or therapist
           </button>
           <button className="text-button danger" onClick={() => setCancel(true)} data-testid="session-cancel">
@@ -417,7 +418,7 @@ const Requests = ({ week, reload }) => {
             {r.preferred_date && <p>Preferred date: {niceDay(r.preferred_date)}</p>}
             <p className="ops-muted">“{r.reason}”</p>
           </div>
-          <button className="button outlined small"
+          <button className="button outlined compact"
             onClick={() => (setOpen(r), setF({ date: r.preferred_date || '', time: r.appointment ? istTime(r.appointment.starts_at) : '', note: '' }))}
             data-testid={`request-open-${r.id}`}>
             Answer
@@ -590,7 +591,7 @@ const CenterSettings = ({ week, reload }) => {
         </div>
         <div className="tm-row" style={{ marginTop: 6 }}>
           <input aria-label="New room" placeholder="e.g. Sensory gym" value={room} onChange={(e) => setRoom(e.target.value)} style={{ maxWidth: 240, minHeight: 38 }} />
-          <button type="button" className="button outlined small" disabled={!room.trim()} onClick={() => (setF({ ...f, rooms: [...f.rooms, room.trim()] }), setRoom(''))}>
+          <button type="button" className="button outlined compact" disabled={!room.trim()} onClick={() => (setF({ ...f, rooms: [...f.rooms, room.trim()] }), setRoom(''))}>
             Add room
           </button>
         </div>
@@ -663,7 +664,7 @@ export const ScheduleBoard = ({ mode = 'manage' }) => {
             <button className="icon-button" aria-label="Previous week" onClick={() => setWeekStart(addDays(weekStart, -7))} data-testid="sched-prev">
               <ChevronLeft size={18} />
             </button>
-            <button className="button outlined small" onClick={() => setWeekStart(mondayOf(istDate()))}>
+            <button className="button outlined compact" onClick={() => setWeekStart(mondayOf(istDate()))}>
               This week
             </button>
             <button className="icon-button" aria-label="Next week" onClick={() => setWeekStart(addDays(weekStart, 7))} data-testid="sched-next">
@@ -683,7 +684,7 @@ export const ScheduleBoard = ({ mode = 'manage' }) => {
               <input type="checkbox" checked={showCancelled} onChange={(e) => setShowCancelled(e.target.checked)} /> <span>Show cancelled</span>
             </label>
             {mode === 'manage' && (
-              <button className="button primary small" style={{ marginLeft: 'auto' }} onClick={() => setBooking({})} data-testid="sched-book">
+              <button className="button primary compact" style={{ marginLeft: 'auto' }} onClick={() => setBooking({})} data-testid="sched-book">
                 <CalendarPlus size={15} /> Book a session
               </button>
             )}
@@ -718,9 +719,7 @@ export const ScheduleBoard = ({ mode = 'manage' }) => {
                           className={`sched-item ${tone[s.therapist_id] || ''} ${s.status === 'Cancelled' ? 'cancelled' : ''}`}
                           onClick={() => setSelected(s)}
                           data-testid={`sched-item-${s.id}`}>
-                          <strong>
-                            {niceTime(s.starts_at)}–{niceTime(s.ends_at)}
-                          </strong>
+                          <strong>{timeRange(s.starts_at, s.ends_at)}</strong>
                           <span>
                             {mode === 'parent' ? s.service : `${s.child_name} · ${s.service}`}
                           </span>

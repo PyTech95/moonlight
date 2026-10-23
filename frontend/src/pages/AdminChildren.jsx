@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { api, errorText, dateLabel } from '../lib/api';
 import { PortalHeading, useWorkspace } from '../components/PortalLayout';
 import { Check, TextField, useAction } from '../components/team/teamUi';
-import { Modal, Tabs, useLoad, rupees, niceTime, Field } from '../components/ops/opsUi';
+import { Modal, Tabs, useLoad, rupees, niceTime, niceDate, Field } from '../components/ops/opsUi';
 
 export const opsAccess = (user) => {
   const profile = user?.access_profile;
@@ -240,7 +240,7 @@ const ParentAccess = ({ child, reload, allowed }) => {
             <TextField id="guardian-phone" label="Mobile (for code sign-in)" value={f.phone} onChange={(v) => setF({ ...f, phone: v })} />
           </div>
           <div className="tm-row">
-            <button className="button primary small" disabled={busy === 'invite'} data-testid="guardian-invite">
+            <button className="button primary compact" disabled={busy === 'invite'} data-testid="guardian-invite">
               Send invitation
             </button>
             {primary && !f.email && (
@@ -307,7 +307,7 @@ const Therapists = ({ child, reload, allowed }) => {
               </option>
             ))}
           </select>
-          <button className="button outlined small" disabled={!pick || !!busy} data-testid="therapist-add"
+          <button className="button outlined compact" disabled={!pick || !!busy} data-testid="therapist-add"
             onClick={() => run('add', () => api.post(`/admin/children/${child.id}/therapists`, { user_id: pick }), (r) => r.data.message).then((ok) => ok && (setPick(''), reload()))}>
             Assign
           </button>
@@ -345,17 +345,17 @@ const ChildDetail = ({ id, onBack, access, services, base }) => {
         {archived && <span className="status lavender">Archived</span>}
         <div className="ops-actions" style={{ marginLeft: 'auto', marginTop: 0 }}>
           {access.schedule && !archived && (
-            <button className="button primary small" onClick={() => navigate(`${base}/schedule?book=${child.id}`)} data-testid="child-book">
+            <button className="button primary compact" onClick={() => navigate(`${base}/schedule?book=${child.id}`)} data-testid="child-book">
               <CalendarPlus size={15} /> Book a session
             </button>
           )}
           {access.billingRead && (
-            <button className="button outlined small" onClick={() => navigate(`${base}/billing?child=${child.id}`)}>
+            <button className="button outlined compact" onClick={() => navigate(`${base}/billing?child=${child.id}`)}>
               <Wallet size={15} /> Billing
             </button>
           )}
           {access.manageChildren && (
-            <button className="button outlined small" onClick={() => setEditing(true)} data-testid="child-edit">
+            <button className="button outlined compact" onClick={() => setEditing(true)} data-testid="child-edit">
               <Pencil size={15} /> Edit
             </button>
           )}
@@ -446,7 +446,7 @@ const ChildDetail = ({ id, onBack, access, services, base }) => {
               {child.billing.packages.map((p) => (
                 <div key={p.id} style={{ marginTop: 8 }}>
                   <p style={{ margin: 0 }}>
-                    {p.name}: <strong>{p.sessions_left}</strong> of {p.sessions_total} left · until {p.expires_on}
+                    {p.name}: <strong>{p.sessions_left}</strong> of {p.sessions_total} left · until {niceDate(p.expires_on)}
                   </p>
                   <div className="pkg-bar">
                     <span style={{ width: `${(100 * p.sessions_left) / p.sessions_total}%` }} />
@@ -461,7 +461,7 @@ const ChildDetail = ({ id, onBack, access, services, base }) => {
               {archived ? (
                 <>
                   <p>Archived: {child.archive_reason}</p>
-                  <button className="button outlined small"
+                  <button className="button outlined compact"
                     onClick={() => run('r', () => api.post(`/admin/children/${child.id}/restore`), 'Record restored.').then((ok) => ok && reload())}>
                     <RotateCcw size={15} /> Restore
                   </button>
@@ -469,7 +469,7 @@ const ChildDetail = ({ id, onBack, access, services, base }) => {
               ) : (
                 <>
                   <p className="ops-muted">Archiving hides the child from lists and booking. Records and invoices are kept.</p>
-                  <button className="button outlined small" onClick={() => setArchiving(true)} data-testid="child-archive">
+                  <button className="button outlined compact" onClick={() => setArchiving(true)} data-testid="child-archive">
                     <Archive size={15} /> Archive record
                   </button>
                 </>

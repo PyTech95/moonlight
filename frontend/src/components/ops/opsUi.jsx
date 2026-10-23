@@ -32,6 +32,22 @@ export const longDay = (day) =>
   new Intl.DateTimeFormat('en-IN', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' }).format(
     new Date(`${day}T00:00:00Z`),
   );
+// "10:00–10:45 am" (one am/pm, at the end, unless the session crosses noon)
+export const timeRange = (start, end) => {
+  const parts = (v) => {
+    const t = new Intl.DateTimeFormat('en-IN', { timeZone: IST, hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date(v));
+    const m = t.match(/^(\d{1,2}:\d{2})\s*([ap]\.?m\.?)$/i);
+    return m ? [m[1], m[2].replace(/\./g, '').toLowerCase()] : [t, ''];
+  };
+  const [a, ap] = parts(start);
+  const [b, bp] = parts(end);
+  return ap === bp ? `${a}–${b} ${bp}` : `${a} ${ap}–${b} ${bp}`;
+};
+// "30 Oct 2026" from "2026-10-30"
+export const niceDate = (day) =>
+  day
+    ? new Intl.DateTimeFormat('en-IN', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${day.slice(0, 10)}T00:00:00Z`))
+    : '';
 export const addDays = (day, n) => {
   const d = new Date(`${day}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);
