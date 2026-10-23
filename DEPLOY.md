@@ -45,7 +45,25 @@ same login works on the website and in the mobile app.
 2. **Website content** → check every page, especially facts only the center can confirm: fees wording, session
    lengths, home-tutor details, approximate distances on the Areas list, and the unique introduction for each area
    that has its own page. Changes are live as soon as you press Save.
-3. **Site images** → homepage slideshow, therapy photos, director and team photos.
+3. **Site images** → homepage slideshow, therapy photos, director and team photos. The default pictures are still
+   hosted by Emergent; replace them (see the website image brief) so nothing depends on Emergent after the move.
+4. **Accounts & consent** → invite each therapist (Therapist), front-desk (Reception) and accounts (Finance) person.
+5. **Schedule** → Rooms & hours (rooms, opening days and hours), then Therapist hours for each therapist.
+6. **Billing** → Packages & prices (session prices, packages), then Settings (invoice prefix, UPI ID, bank details).
+7. **Children** → add each child (or **Enrol child** from an enquiry), give the parents app access, assign therapists,
+   then book their weekly sessions from the child's page or the Schedule.
+
+## 3b. Optional connections
+
+| Service | Where to get it | Where it goes |
+| --- | --- | --- |
+| Online payments | [Razorpay](https://dashboard.razorpay.com) → Account & Settings → API Keys (start with Test mode keys) | Billing → Settings → Online payments → Test connection |
+| Razorpay webhook (recommended) | Razorpay → Webhooks → add `https://moonlightneurocare.com/api/billing/razorpay/webhook`, event `payment_link.paid`, set a secret | Same secret in Billing → Settings |
+| Video sessions | [Daily.co](https://dashboard.daily.co) → Developers → API key; your domain, e.g. `moonlight.daily.co` | Settings → Online video sessions → Test connection |
+| WhatsApp sign-in codes | Meta WhatsApp Manager → Message templates → new **Authentication** template with a copy-code button; wait for approval | Settings → WhatsApp → Sign-in code template (name and language) |
+
+Without these the app still works: families pay at the desk (recorded in Billing), online classes show “video not
+connected”, and sign-in codes go by email.
 
 ## 4. Google, Bing and AI assistants
 
@@ -71,7 +89,7 @@ database, uploaded files and the Nginx/SSL setup are left alone.
 | Database | MongoDB 8.0 on 127.0.0.1 (service `mongod`), database `moonlight` |
 | Uploaded files | `/var/lib/moonlight/storage` (or S3 if `STORAGE_BACKEND=s3`) |
 | Settings | `/opt/moonlight/backend/.env` (only root and the app can read it) |
-| Scheduled jobs | `/etc/cron.d/moonlight`: virus definitions 03:15, school digest Saturday 09:00, Google pages 03:45, backup 03:00 (IST) |
+| Scheduled jobs | `/etc/cron.d/moonlight`: session reminders + package expiry 18:00, virus definitions 03:15, school digest Saturday 09:00, Google pages 03:45, backup 03:00 (IST) |
 | Backups | `/var/backups/moonlight`: database dump every night (14 kept) + copy of uploaded files |
 | Logs | `/var/log/moonlight/` (cron, prerender, backup) |
 
@@ -98,6 +116,13 @@ Backups on the same server are lost with the server. Also turn on your VPS provi
 here needs the setup command to be run again (the website is rebuilt).
 
 After editing `backend/.env`: `sudo systemctl restart moonlight-api`.
+
+## Android app
+
+The app opens `https://moonlightneurocare.com/login` in a branded shell, so it works as soon as the site is live
+on the VPS and every change to the site appears in the app without an update. It is built on GitHub Actions; see
+[mobile/README.md](mobile/README.md). Keep the signing key in `android-signing/` safe: Google Play needs the same key
+for every update.
 
 ## If something is wrong
 
