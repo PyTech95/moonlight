@@ -1,7 +1,8 @@
 name: Android app
 
 # Builds the Moonlight Neurocare Android app (APK for direct install, AAB for Google Play) and attaches both to a
-# GitHub Release. Run it from the Actions tab ("Run workflow"), or push a tag such as app-v1.0.1.
+# GitHub Release. It runs from the Actions tab ("Run workflow"), on a tag such as app-v1.0.1, and on any push to
+# main or vps-phase4 that changes the app (mobile/) or this file.
 #
 # Signing: with the four ANDROID_* secrets set (see mobile/README.md) the files are signed here and the release is
 # published. Without them the files are built unsigned and put on a *draft* release; sign them with the upload key
@@ -16,6 +17,12 @@ on:
   push:
     tags:
       - 'app-v*'
+    branches:
+      - main
+      - vps-phase4
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/android.yml'
 
 permissions:
   contents: write

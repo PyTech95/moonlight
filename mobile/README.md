@@ -27,11 +27,22 @@ Everything builds on GitHub Actions (`.github/workflows/android.yml`); no Androi
 - **From the Actions tab:** Android app → Run workflow. Optionally enter a different app URL (e.g. a staging
   server). The signed APK and AAB appear under Releases as `app-build-<number>`.
 - **With a tag:** `git tag app-v1.0.1 && git push origin app-v1.0.1`.
+- **Automatically:** any push to `main` or `vps-phase4` that changes `mobile/` or the workflow file.
 
 Each run gets version `1.0.<run number>` with a matching, always-increasing version code.
 
-The workflow signs with four repository secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
-`ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`. The keystore itself is never committed.
+The workflow signs with four repository secrets (Settings → Secrets and variables → Actions):
+`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`. The keystore
+itself is never committed. Without the secrets the files are built unsigned and put on a **draft** release; sign
+them with the upload key before installing:
+
+```bash
+zipalign -p -f 4 moonlight-neurocare-1.0.N-unsigned.apk aligned.apk
+apksigner sign --ks moonlight-upload.jks --ks-key-alias moonlight-upload --out moonlight-neurocare.apk aligned.apk
+jarsigner -keystore moonlight-upload.jks moonlight-neurocare-1.0.N-unsigned.aab moonlight-upload   # for Google Play
+```
+
+A failed build puts its log on a draft release named `app-failed-<number>`.
 
 ## Build locally (optional)
 
