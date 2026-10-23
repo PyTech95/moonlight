@@ -1,0 +1,7 @@
+node_modules/
+# Signing material is kept outside the repository (GitHub Actions secrets + the center's safe copy).
+*.jks
+*.keystore
+*.p12
+keystore.properties
+android/app/release/

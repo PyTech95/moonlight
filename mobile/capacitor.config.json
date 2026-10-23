@@ -1,0 +1,33 @@
+{
+  "appId": "com.moonlightneurocare.app",
+  "appName": "Moonlight Neurocare",
+  "webDir": "www",
+  "appendUserAgent": "MoonlightApp/1.0",
+  "backgroundColor": "#f8f7f2",
+  "server": {
+    "url": "https://moonlightneurocare.com/login",
+    "allowNavigation": [
+      "moonlightneurocare.com",
+      "www.moonlightneurocare.com"
+    ],
+    "errorPath": "error.html",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "launchAutoHide": true,
+      "backgroundColor": "#123f46",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false
+    },
+    "SystemBars": {
+      "insetsHandling": "native",
+      "style": "DARK"
+    }
+  }
+}
