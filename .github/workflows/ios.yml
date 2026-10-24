@@ -1,0 +1,126 @@
+name: iOS app
+
+# Builds the iPhone app on a GitHub macOS runner and uploads it to App Store Connect (TestFlight), from where it is
+# submitted to the App Store. Signing is automatic (Xcode cloud signing) with an App Store Connect API key:
+#   secret   ASC_API_KEY_P8                         the contents of the AuthKey_XXXXXXXXXX.p8 file
+#   variables (or secrets) ASC_KEY_ID, ASC_ISSUER_ID, APPLE_TEAM_ID
+# Without them the app is only compiled (no signing, no upload), which checks that the project builds.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - vps-phase4
+    paths:
+      - 'mobile/ios/**'
+      - 'mobile/scripts/**'
+      - 'mobile/www/**'
+      - 'mobile/package.json'
+      - 'mobile/package-lock.json'
+      - '.github/workflows/ios.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      APP_URL: https://moonlightneurocare.com/login
+      BUILD_NUMBER: ${{ github.run_number }}
+      VERSION: 1.0.${{ github.run_number }}
+      ASC_KEY_ID: ${{ vars.ASC_KEY_ID || secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ vars.ASC_ISSUER_ID || secrets.ASC_ISSUER_ID }}
+      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID || secrets.APPLE_TEAM_ID }}
+      LOG: ${{ github.workspace }}/ios-build.log
+    defaults:
+      run:
+        working-directory: mobile
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install and sync the iOS project
+        run: |
+          set -o pipefail
+          xcodebuild -version | tee -a "$LOG"
+          npm ci 2>&1 | tee -a "$LOG"
+          npm run sync:ios 2>&1 | tee -a "$LOG"
+
+      - name: App Store Connect key
+        env:
+          KEY: ${{ secrets.ASC_API_KEY_P8 }}
+        run: |
+          if [ -z "$KEY" ] || [ -z "$ASC_KEY_ID" ] || [ -z "$ASC_ISSUER_ID" ] || [ -z "$APPLE_TEAM_ID" ]; then
+            echo "::notice::No App Store Connect key yet: compiling only (no signing, no upload)."
+            echo "SIGN=no" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s\n' "$KEY" > "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8"
+          echo "KEY_PATH=$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" >> "$GITHUB_ENV"
+          echo "SIGN=yes" >> "$GITHUB_ENV"
+
+      - name: Compile (no signing)
+        if: env.SIGN != 'yes'
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/dd" \
+            CODE_SIGNING_ALLOWED=NO MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            build 2>&1 | tee -a "$LOG" | grep -E "error|warning: .*AppDelegate|BUILD" | tail -60
+
+      - name: Archive, sign and upload to App Store Connect
+        if: env.SIGN == 'yes'
+        run: |
+          set -o pipefail
+          AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/dd" -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            "${AUTH[@]}" archive 2>&1 | tee -a "$LOG" | grep -E "error|BUILD|ARCHIVE" | tail -60
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
+            "${AUTH[@]}" 2>&1 | tee -a "$LOG" | tail -40
+          echo "::notice::Uploaded version $VERSION ($BUILD_NUMBER). It appears in App Store Connect > TestFlight after processing (10-30 minutes)."
+
+      - name: Keep the log of a failed build
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -f "$LOG" ] || echo "No log was written; see the Actions run." > "$LOG"
+          tail -c 900000 "$LOG" > "$RUNNER_TEMP/ios-build-failed.log"
+          gh release create "ios-failed-${GITHUB_RUN_NUMBER}" "$RUNNER_TEMP/ios-build-failed.log" \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft \
+            --title "iOS build ${GITHUB_RUN_NUMBER} failed" --notes "Log of the failed iOS build (last 900 KB)."

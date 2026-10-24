@@ -22,6 +22,7 @@ on:
       - vps-phase4
     paths:
       - 'mobile/**'
+      - '!mobile/ios/**'
       - '.github/workflows/android.yml'
 
 permissions:

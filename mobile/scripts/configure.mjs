@@ -38,6 +38,12 @@ const config = {
     allowMixedContent: false,
     webContentsDebuggingEnabled: false,
   },
+  ios: {
+    // Keep the page clear of the notch and home indicator (the site has no safe-area CSS).
+    contentInset: 'always',
+    allowsLinkPreview: false,
+    webContentsDebuggingEnabled: false,
+  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 1200,
