@@ -97,11 +97,21 @@ jobs:
         run: |
           set -o pipefail
           AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
-          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
-            -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/dd" -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
-            MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
-            "${AUTH[@]}" archive 2>&1 | tee -a "$LOG" | grep -E "error|BUILD|ARCHIVE" | tail -60
+          archive() {
+            rm -rf "$RUNNER_TEMP/App.xcarchive"
+            xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+              -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/dd" -archivePath "$RUNNER_TEMP/App.xcarchive" \
+              DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
+              MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+              "$@" archive 2>&1 | tee -a "$LOG" | grep -E "error|BUILD|ARCHIVE" | tail -60
+          }
+          # The team has no registered devices, so Xcode cannot make a development profile: sign the archive for
+          # distribution (App Store profile, cloud-managed certificate). If that is refused, archive unsigned and let
+          # the export step sign it.
+          if ! archive "${AUTH[@]}" CODE_SIGN_IDENTITY="Apple Distribution"; then
+            echo "::warning::Distribution-signed archive failed; archiving unsigned and signing at export."
+            archive CODE_SIGNING_ALLOWED=NO
+          fi
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
