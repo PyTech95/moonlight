@@ -107,8 +107,12 @@ export default function Parent() {
   const { view = 'today' } = useParams(),
     { data } = useWorkspace();
   const [filter, setFilter] = useState('All sessions');
-  const child = data.children[0],
-    next = data.appointments[0];
+  // The workspace also returns the last two weeks of sessions, so "next" and the count only look at what is ahead.
+  const upcoming = data.appointments.filter(
+      (a) => a.status !== 'Cancelled' && new Date(a.ends_at || a.starts_at) > new Date(),
+    ),
+    child = data.children[0],
+    next = upcoming[0];
   if (view === 'more') return <MorePage />;
   if (view === 'payments') return <ParentPayments />;
   if (view === 'sharing') return <ParentSharing />;
@@ -290,8 +294,8 @@ export default function Parent() {
         <Link to="/portal/parent/schedule" data-testid="parent-session-stat">
           <CalendarDays size={22} />
           <div>
-            <strong>{data.appointments.length}</strong>
-            <span>Confirmed sessions</span>
+            <strong>{upcoming.length}</strong>
+            <span>Upcoming sessions</span>
           </div>
           <ArrowUpRight size={16} />
         </Link>
